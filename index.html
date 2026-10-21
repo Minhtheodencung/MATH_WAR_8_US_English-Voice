@@ -1,0 +1,2467 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MATH WAR 8 - THE KNOWLEDGE GATE V2.2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ui-cyan: #00f3ff;
+            --ui-purple: #bc13fe;
+            --bg-glass: rgba(10, 15, 30, 0.7);
+        }
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #030510;
+            color: white;
+            font-family: 'Inter', sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        input {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+        }
+        
+        .font-scifi { font-family: 'Orbitron', sans-serif; }
+        
+        .glass-panel {
+            background: var(--bg-glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 243, 255, 0.05);
+            border-radius: 12px;
+        }
+
+        .btn-option {
+            background: rgba(20, 25, 45, 0.8);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .btn-option:hover {
+            background: rgba(0, 243, 255, 0.15);
+            border-color: var(--ui-cyan);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+        }
+        .btn-option.selected {
+            background: rgba(188, 19, 254, 0.3);
+            border-color: var(--ui-purple);
+            box-shadow: 0 0 20px rgba(188, 19, 254, 0.4);
+        }
+        .btn-option.correct {
+            background: rgba(0, 255, 100, 0.3);
+            border-color: #00ff64;
+            box-shadow: 0 0 20px rgba(0, 255, 100, 0.5);
+        }
+        .btn-option.wrong {
+            background: rgba(255, 50, 50, 0.3);
+            border-color: #ff3232;
+            box-shadow: 0 0 20px rgba(255, 50, 50, 0.5);
+        }
+        .btn-option.disabled {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #0055ff, #00f3ff);
+            border: none;
+            color: white;
+            text-transform: uppercase;
+            font-weight: bold;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.8);
+            transform: scale(1.05);
+        }
+        .btn-primary.disabled {
+            background: linear-gradient(45deg, #444, #666);
+            box-shadow: none;
+            color: #aaa;
+            pointer-events: none;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100vh); }
+        }
+        .scanline-effect {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 10px;
+            background: linear-gradient(to bottom, transparent, rgba(0, 243, 255, 0.2), transparent);
+            animation: scanline 4s linear infinite;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        .shake-heavy { animation: shake 0.8s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        
+        @keyframes ring-expand {
+            0% { transform: scale(0); opacity: 1; border-width: 20px; }
+            100% { transform: scale(4); opacity: 0; border-width: 1px; }
+        }
+        .power-ring {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            border: solid #00f3ff;
+            width: 200px; height: 200px;
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        .screen {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 10;
+        }
+        .screen.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        #hud { z-index: 20; pointer-events: none; }
+        #hud.active { opacity: 1; pointer-events: none; }
+        .math-content p { margin-bottom: 0.5rem; }
+        .glow-text { text-shadow: 0 0 10px currentColor; }
+
+        .controls-hint {
+            position: absolute;
+            bottom: 20px; left: 20px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            color: rgba(0, 243, 255, 0.5);
+            pointer-events: none;
+            z-index: 15;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="spaceCanvas" class="absolute inset-0 z-0"></canvas>
+    <div class="scanline-effect"></div>
+    <div class="controls-hint hidden md:block">W A S D / ARROWS TO EXPLORE | MOUSE CLICK TO MOVE</div>
+
+    <!-- HUD Overlay -->
+    <div id="hud" class="absolute inset-0 p-4 flex flex-col justify-between hidden opacity-0 transition-opacity duration-1000">
+        <div class="flex justify-between items-start w-full max-w-6xl mx-auto mt-2">
+            <!-- Top Left: Player Profile -->
+            <div class="glass-panel px-4 py-2 flex items-center gap-3 bg-opacity-90">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-500 to-purple-500 flex items-center justify-center font-bold border border-cyan-300 shadow-[0_0_10px_#bc13fe] text-xl">🚀</div>
+                <div>
+                    <div class="text-xs text-cyan-300 font-scifi">EXPLORER</div>
+                    <div id="hero-name-display" class="font-bold text-sm md:text-base tracking-wide text-white uppercase glow-text">UNKNOWN</div>
+                </div>
+            </div>
+            
+            <!-- Top Center -->
+            <div class="text-center hidden md:block">
+                <h1 class="font-scifi text-xl md:text-2xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 drop-shadow-[0_0_10px_rgba(0,243,255,0.8)]">KNOWLEDGE GATE</h1>
+                <div id="chapter-display" class="text-sm text-gray-300 tracking-wider">CHƯƠNG: TỨ GIÁC</div>
+            </div>
+
+            <!-- Top Right -->
+            <div class="glass-panel px-4 py-2 text-right min-w-[120px]">
+                <div class="text-xs text-purple-300 font-scifi">SCORE</div>
+                <div id="score-display" class="font-bold text-2xl text-purple-400 font-scifi drop-shadow-[0_0_8px_rgba(188,19,254,0.8)]">0</div>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-end w-full max-w-6xl mx-auto mb-2">
+            <!-- Bottom Left: Energy -->
+            <div class="glass-panel px-4 py-3 w-48 md:w-64">
+                <div class="flex justify-between text-xs mb-1 font-scifi">
+                    <span class="text-cyan-300">CORE ENERGY</span>
+                    <span id="energy-text" class="text-white">100%</span>
+                </div>
+                <div class="w-full bg-gray-800 h-3 rounded-full overflow-hidden border border-gray-600">
+                    <div id="energy-bar" class="bg-gradient-to-r from-cyan-500 to-purple-500 h-full w-full transition-all duration-300 shadow-[0_0_10px_#00f3ff]"></div>
+                </div>
+            </div>
+
+            <!-- Bottom Center: Progress -->
+            <div class="glass-panel px-6 py-2 text-center w-64 md:w-96 hidden md:block">
+                <div class="text-xs text-gray-400 font-scifi mb-1">CHALLENGE PROGRESS</div>
+                <div class="flex items-center gap-2">
+                    <span id="progress-text" class="font-bold text-lg font-scifi text-cyan-400 w-12 text-left">01/30</span>
+                    <div class="flex-1 flex gap-[2px]">
+                        <div id="progress-blocks" class="flex w-full h-2 gap-[1px]"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Right: Settings -->
+            <button onclick="toggleSettings()" class="glass-panel w-12 h-12 flex items-center justify-center text-xl hover:text-cyan-400 hover:scale-110 pointer-events-auto transition-all">
+                ⚙️
+            </button>
+        </div>
+    </div>
+
+    <!-- SCREEN SPLASH -->
+    <div id="screen-splash" class="screen active justify-center items-center bg-black bg-opacity-60 backdrop-blur-sm">
+        <h1 class="font-scifi text-5xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-200 to-cyan-600 mb-2 animate-pulse text-center">
+            MATH WAR 8
+        </h1>
+        <h2 class="font-scifi text-2xl md:text-5xl text-purple-400 block mb-6 drop-shadow-[0_0_15px_rgba(188,19,254,0.8)] text-center">THE KNOWLEDGE GATE V2.2</h2>
+        
+        <p class="text-gray-300 font-light text-center mb-8 max-w-lg px-4 italic">
+            "Bạn sắp bước vào một thiên hà nơi sức mạnh không đến từ vũ khí, mà đến từ tư duy Toán học."
+        </p>
+
+        <div class="mb-8 w-full max-w-md px-4">
+            <div class="text-cyan-400 font-scifi text-sm mb-2 ml-4">TÊN TRƯỜNG THCS:</div>
+            <input type="text" id="school-name-input" placeholder="Nhập tên trường THCS" autocomplete="off" class="w-full px-4 py-3 rounded-xl bg-gray-900 text-white border border-cyan-500 mb-4">
+            <div class="text-cyan-400 font-scifi text-sm mb-2 ml-4">TÊN NHÀ THÁM HIỂM:</div>
+            <input type="text" id="player-name-input" onkeypress="if(event.key === 'Enter') startGame()" placeholder="[ NHẬP ĐỊNH DANH ]" class="w-full bg-gray-900 bg-opacity-80 border-2 border-cyan-500 rounded-full px-6 py-4 text-cyan-300 font-scifi text-center text-xl placeholder-cyan-800 focus:outline-none focus:border-purple-500 focus:shadow-[0_0_20px_#bc13fe] transition-all uppercase shadow-[0_0_10px_rgba(0,243,255,0.3)]" maxlength="15" autocomplete="off">
+            <div id="name-error" class="text-red-500 text-sm text-center mt-2 hidden font-scifi">VUI LÒNG NHẬP TÊN ĐỂ BƯỚC VÀO THIÊN HÀ!</div>
+        </div>
+
+        <button onclick="startGame()" class="btn-primary px-12 py-4 rounded-full text-xl font-scifi tracking-wider animate-bounce hover:animate-none">
+            🚀 BƯỚC VÀO THIÊN HÀ
+        </button>
+    </div>
+
+    <!-- SCREEN BRIEFING -->
+    <div id="screen-briefing" class="screen justify-center items-center bg-black bg-opacity-80">
+        <div class="max-w-2xl text-center glass-panel p-8 md:p-10 relative overflow-hidden mx-4">
+            <div class="absolute top-0 left-0 w-full h-1 bg-cyan-500"></div>
+            <h2 class="font-scifi text-2xl md:text-3xl text-cyan-400 mb-6 border-b border-cyan-900 pb-4" id="welcome-msg">CHÀO MỪNG, EXPLORER</h2>
+            <div class="text-base md:text-lg leading-relaxed text-gray-200 mb-8 font-light text-left space-y-4">
+                <p>Bạn đã chính thức trở thành một Nhà Thám Hiểm của <span class="text-cyan-300 font-bold">Math Galaxy</span>.</p>
+                <p>Hiện tại, thực thể AI bí ẩn <span class="text-purple-400 font-bold">VOID</span> đang phong tỏa Cổng Tri Thức (Knowledge Gate).</p>
+                <p class="italic text-gray-400 border-l-4 border-purple-500 pl-4 py-2 bg-purple-900 bg-opacity-20">"Cánh cổng này không mở bằng sức mạnh vũ khí. Nó chỉ mở bằng tri thức Toán học."</p>
+                <div class="mt-6 p-4 bg-blue-900 bg-opacity-30 rounded border border-blue-800 relative">
+                    <div class="absolute -top-3 left-4 bg-[#030510] px-2 text-cyan-400 font-scifi text-xs md:text-sm">MISSION OBJECTIVE</div>
+                    <ul class="list-disc list-inside text-sm space-y-2 mt-2">
+                        <li>Vượt qua <span class="text-white font-bold">30 thử thách</span> Hình học.</li>
+                        <li>Trắc nghiệm 1 lựa chọn: Hệ thống tự động đối chiếu ngay khi click.</li>
+                        <li>Trắc nghiệm nhiều lựa chọn: Chọn TẤT CẢ đáp án đúng và XÁC NHẬN.</li>
+                        <li class="text-yellow-400 font-bold">Mục tiêu: Đạt Math Power >= 80% để mở khóa cuộc chiến tiếp theo!</li>
+                    </ul>
+                </div>
+            </div>
+            <button onclick="startMissionIntro()" class="btn-primary px-10 py-3 rounded-full font-scifi text-lg w-full">
+                ENTER SOLAR SYSTEM
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME 1 UI -->
+    <div id="screen-game" class="screen justify-center md:justify-end items-center pb-8 md:pb-24 px-4 relative">
+        <div id="ai-message" class="absolute top-[12%] md:top-[18%] left-1/2 transform -translate-x-1/2 bg-blue-900 bg-opacity-90 border border-cyan-400 text-white px-6 py-3 rounded-full font-scifi text-sm tracking-wide opacity-0 transition-opacity duration-300 z-50 text-center w-max max-w-[90%] shadow-[0_0_20px_rgba(0,243,255,0.5)]">
+            AI: Hệ thống sẵn sàng!
+        </div>
+
+        <div id="game-ui-container" class="w-full max-w-4xl mt-32 md:mt-0 opacity-0 transition-opacity duration-1000">
+            <div class="glass-panel p-6 md:p-8 mb-4 relative overflow-hidden bg-opacity-90">
+                <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500"></div>
+                <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+                    <span id="question-type-badge" class="bg-cyan-900 text-cyan-300 text-xs px-3 py-1 rounded-full font-bold tracking-wider font-scifi">SINGLE CHOICE</span>
+                    <span class="text-gray-400 text-sm font-scifi" id="question-id-display">DATA ID: #00</span>
+                </div>
+                <div id="question-text" class="text-lg md:text-xl font-medium leading-relaxed math-content text-white">
+                    Đang tải dữ liệu không gian...
+                </div>
+            </div>
+
+            <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4"></div>
+
+            <div id="submit-container" class="mt-4 md:mt-6 text-center hidden">
+                <button onclick="submitMultipleChoice()" class="btn-primary px-12 py-3 rounded-full font-scifi text-lg w-full md:w-auto shadow-[0_0_15px_#bc13fe]">
+                    XÁC NHẬN NĂNG LƯỢNG
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME 1 CINEMATIC -->
+    <div id="screen-cinematic" class="screen justify-center items-center bg-black bg-opacity-40 transition-all duration-1000 z-40">
+        <div id="power-ring-container" class="absolute inset-0 flex justify-center items-center pointer-events-none"></div>
+        <div class="text-center z-50 relative">
+            <h2 id="cine-title" class="font-scifi text-2xl md:text-4xl text-cyan-400 mb-6 tracking-widest opacity-0 transition-opacity duration-1000 glow-text">THỨC TỈNH SỨC MẠNH...</h2>
+            <div id="cine-name" class="font-scifi text-3xl md:text-5xl text-white font-bold mb-4 opacity-0 transition-opacity duration-1000 drop-shadow-[0_0_10px_#fff]">PLAYER NAME</div>
+            
+            <div id="cine-power-container" class="opacity-0 transition-opacity duration-1000 my-8">
+                <div class="text-sm text-cyan-300 font-scifi mb-2">MATH POWER</div>
+                <div class="text-7xl md:text-9xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 drop-shadow-[0_0_20px_#00f3ff]">
+                    <span id="cine-power-num">0</span>%
+                </div>
+            </div>
+
+            <div id="cine-rank-container" class="opacity-0 transition-all duration-1000 scale-50">
+                <div id="cine-stars" class="text-3xl md:text-5xl text-yellow-400 mb-2 drop-shadow-[0_0_10px_#facc15] tracking-widest"></div>
+                <div id="cine-rank-title" class="font-scifi text-2xl md:text-4xl text-white font-bold glow-text">RANK TITLE</div>
+            </div>
+            
+            <div id="cine-gate-msg" class="mt-12 text-green-400 font-scifi text-xl opacity-0 transition-opacity duration-1000 glow-text hidden">
+                KNOWLEDGE GATE ĐANG MỞ...
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME 1 RESULT -->
+    <div id="screen-result" class="screen justify-center items-center bg-black bg-opacity-90 backdrop-blur-md z-30">
+        <div class="max-w-2xl w-full text-center glass-panel p-6 md:p-10 relative overflow-hidden mx-4">
+            <div id="result-bg-effect" class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-cyan-500 to-transparent opacity-10 rounded-full blur-3xl"></div>
+            
+            <h2 id="result-title" class="font-scifi text-3xl md:text-4xl text-cyan-400 mb-2 glow-text">KNOWLEDGE GATE COMPLETE</h2>
+            <div class="text-gray-400 mb-6 font-scifi text-sm tracking-widest flex justify-center items-center gap-2">
+                🚀 EXPLORER <span id="result-player-name" class="text-white font-bold">NAME</span>
+            </div>
+            
+            <div class="mb-8 py-4 bg-gray-900 bg-opacity-50 border-y border-gray-700">
+                <div id="result-stars" class="text-2xl md:text-3xl text-yellow-400 mb-1 drop-shadow-[0_0_8px_#facc15]">⭐⭐⭐</div>
+                <div id="result-rank" class="font-scifi text-2xl md:text-3xl text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400 font-bold drop-shadow-[0_0_10px_rgba(0,243,255,0.5)]">COSMIC EXPLORER</div>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center bg-black bg-opacity-40 p-4 rounded-xl mb-6 border border-gray-700">
+                <div>
+                    <div class="text-gray-500 text-xs font-scifi mb-1">SCORE</div>
+                    <div class="text-cyan-300 font-bold text-xl font-scifi" id="result-score">0</div>
+                </div>
+                <div>
+                    <div class="text-gray-500 text-xs font-scifi mb-1">CORRECT</div>
+                    <div class="text-white font-bold text-xl font-scifi" id="result-correct">0 / 30</div>
+                </div>
+                <div class="col-span-2 md:col-span-2 bg-gray-800 bg-opacity-50 rounded-lg p-2 border border-gray-600 relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-r from-cyan-900 to-purple-900 opacity-30"></div>
+                    <div class="text-gray-300 text-xs font-scifi mb-1 relative z-10">MATH POWER</div>
+                    <div class="text-yellow-400 font-bold text-3xl font-scifi drop-shadow-[0_0_10px_#facc15]" id="result-power">0%</div>
+                </div>
+            </div>
+
+            <div id="result-status-box" class="mb-8 p-4 border rounded-xl text-center flex flex-col items-center justify-center">
+                <div id="result-status-icon" class="text-4xl mb-2">🟢</div>
+                <div id="result-status-text" class="font-scifi font-bold text-lg md:text-xl text-green-400">NEXT BATTLE UNLOCKED</div>
+                <div id="result-status-desc" class="text-sm text-gray-300 mt-2">Knowledge Gate đã công nhận sức mạnh của bạn.</div>
+            </div>
+
+            <div id="result-actions" class="flex flex-col md:flex-row gap-4 justify-center">
+                <button id="btn-next-battle" onclick="transitionToGame2()" class="btn-primary px-8 py-4 rounded-full font-scifi text-base md:text-lg w-full shadow-[0_0_20px_rgba(0,243,255,0.6)]">
+                    🚀 BƯỚC VÀO CUỘC CHIẾN TIẾP THEO
+                </button>
+                <button id="btn-retry" onclick="location.reload()" class="bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 px-8 py-4 rounded-full font-scifi text-base transition-all w-full hidden">
+                    🔄 CHƠI LẠI
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME 1 TO GAME 2 TRANSITION -->
+    <div id="screen-transition-game2" class="screen justify-center items-center bg-black transition-opacity duration-[2000ms] z-50">
+        <h3 class="font-scifi text-2xl text-cyan-500 mb-2 tracking-[0.5em] glow-text animate-pulse">GAME 2</h3>
+        <h1 class="font-scifi text-4xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500 mb-10 drop-shadow-[0_0_20px_#bc13fe]">
+            THE TRUTH DIMENSION
+        </h1>
+        <p class="text-gray-300 font-light max-w-lg text-center px-4 leading-relaxed mb-10">
+            "Math Power của bạn đã đạt ngưỡng. Knowledge Gate đã lùi lại phía sau. Chuẩn bị tiến vào Không gian Chân lý..."
+        </p>
+        <button onclick="startGame2()" class="btn-primary px-10 py-3 rounded-full font-scifi text-lg border border-cyan-400">
+            CONTINUE
+        </button>
+    </div>
+
+    <!-- GAME 2 UI -->
+    <div id="screen-game2" class="screen justify-center md:justify-end items-center pb-8 md:pb-24 px-4 relative">
+        <div id="ai-message2" class="absolute top-[12%] md:top-[18%] left-1/2 transform -translate-x-1/2 bg-purple-900 bg-opacity-90 border border-purple-400 text-white px-6 py-3 rounded-full font-scifi text-sm tracking-wide opacity-0 transition-opacity duration-300 z-50 text-center w-max max-w-[90%] shadow-[0_0_20px_rgba(188,19,254,0.5)]">
+            AI: Không gian Chân lý đang ổn định...
+        </div>
+
+        <div id="game2-ui-container" class="w-full max-w-4xl mt-32 md:mt-0 opacity-0 transition-opacity duration-1000">
+            <div class="glass-panel p-6 md:p-8 mb-4 relative overflow-hidden bg-opacity-90">
+                <div class="absolute top-0 left-0 w-1 h-full bg-purple-500"></div>
+                <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+                    <span class="bg-purple-900 text-purple-300 text-xs px-3 py-1 rounded-full font-bold tracking-wider font-scifi">ĐÚNG / SAI</span>
+                    <span class="text-gray-400 text-sm font-scifi" id="game2-question-id">DATA ID: #G2-Q001</span>
+                </div>
+                <div id="game2-question-text" class="text-lg md:text-xl font-medium leading-relaxed math-content text-white">
+                    Đang tải dữ liệu không gian chân lý...
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button id="btn-true" onclick="game2.processAnswer(true)" class="btn-option p-6 rounded-xl flex items-center justify-center gap-4 border border-green-500 hover:bg-green-900 hover:bg-opacity-30 transition-all">
+                    <div class="text-2xl md:text-3xl font-bold text-green-400 font-scifi">ĐÚNG</div>
+                </button>
+                <button id="btn-false" onclick="game2.processAnswer(false)" class="btn-option p-6 rounded-xl flex items-center justify-center gap-4 border border-red-500 hover:bg-red-900 hover:bg-opacity-30 transition-all">
+                    <div class="text-2xl md:text-3xl font-bold text-red-400 font-scifi">SAI</div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME 2 RESULT UI -->
+    <div id="screen-result2" class="screen justify-center items-center bg-black bg-opacity-90 backdrop-blur-md z-30">
+        <div class="max-w-2xl w-full text-center glass-panel p-6 md:p-10 relative overflow-hidden mx-4">
+            <div id="result2-bg-effect" class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-purple-500 to-transparent opacity-10 rounded-full blur-3xl"></div>
+            
+            <h2 id="result2-title" class="font-scifi text-3xl md:text-4xl text-purple-400 mb-2 glow-text">GATE 1 COMPLETE</h2>
+            <div class="text-gray-400 mb-6 font-scifi text-sm tracking-widest flex justify-center items-center gap-2">
+                🚀 EXPLORER <span id="result2-player-name" class="text-white font-bold">NAME</span>
+            </div>
+            
+            <div class="mb-8 py-4 bg-gray-900 bg-opacity-50 border-y border-gray-700">
+                <div id="result2-stars" class="text-2xl md:text-3xl text-yellow-400 mb-1 drop-shadow-[0_0_8px_#facc15]">⭐⭐⭐</div>
+                <div id="result2-rank" class="font-scifi text-2xl md:text-3xl text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400 font-bold drop-shadow-[0_0_10px_rgba(188,19,254,0.5)]">REALITY SHAPER</div>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center bg-black bg-opacity-40 p-4 rounded-xl mb-6 border border-gray-700">
+                <div>
+                    <div class="text-gray-500 text-xs font-scifi mb-1">SCORE</div>
+                    <div class="text-purple-300 font-bold text-xl font-scifi" id="result2-score">0</div>
+                </div>
+                <div>
+                    <div class="text-gray-500 text-xs font-scifi mb-1">CORRECT</div>
+                    <div class="text-white font-bold text-xl font-scifi" id="result2-correct">0 / 10</div>
+                </div>
+                <div class="col-span-2 md:col-span-2 bg-gray-800 bg-opacity-50 rounded-lg p-2 border border-gray-600 relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-r from-purple-900 to-pink-900 opacity-30"></div>
+                    <div class="text-gray-300 text-xs font-scifi mb-1 relative z-10">MATH POWER</div>
+                    <div class="text-yellow-400 font-bold text-3xl font-scifi drop-shadow-[0_0_10px_#facc15]" id="result2-power">0%</div>
+                </div>
+            </div>
+
+            <div id="result2-actions" class="flex flex-col md:flex-row gap-4 justify-center">
+                <button id="btn-next-battle2" onclick="transitionToGame3()" class="btn-primary px-8 py-4 rounded-full font-scifi text-base md:text-lg w-full shadow-[0_0_20px_rgba(188,19,254,0.6)]">
+                    🚀 TIẾN VÀO GAME 3
+                </button>
+                <button id="btn-retry2" onclick="location.reload()" class="bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 px-8 py-4 rounded-full font-scifi text-base transition-all w-full hidden">
+                    🔄 CHƠI LẠI TỪ ĐẦU
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME 2 TO GAME 3 TRANSITION -->
+    <div id="screen-transition-game3" class="screen justify-center items-center bg-black transition-opacity duration-[2000ms] z-50">
+        <h3 class="font-scifi text-2xl text-yellow-500 mb-2 tracking-[0.5em] glow-text animate-pulse">GAME 3</h3>
+        <h1 class="font-scifi text-4xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-amber-500 to-red-500 mb-10 drop-shadow-[0_0_20px_#facc15]">
+            THE NUMERICAL MATRIX
+        </h1>
+        <p class="text-gray-300 font-light max-w-lg text-center px-4 leading-relaxed mb-10">
+            "Bạn đã thấu hiểu chân lý. Bây giờ là lúc vận dụng kỹ năng tính toán số học để phá giải Ma Trận Số Cuối Cùng!"
+        </p>
+        <button onclick="startGame3()" class="btn-primary px-10 py-3 rounded-full font-scifi text-lg border border-yellow-400">
+            CONTINUE MATRIX
+        </button>
+    </div>
+
+    <!-- GAME 3 UI -->
+    <div id="screen-game3" class="screen justify-center md:justify-end items-center pb-8 md:pb-24 px-4 relative">
+        <div id="ai-message3" class="absolute top-[12%] md:top-[18%] left-1/2 transform -translate-x-1/2 bg-amber-900 bg-opacity-90 border border-yellow-400 text-white px-6 py-3 rounded-full font-scifi text-sm tracking-wide opacity-0 transition-opacity duration-300 z-50 text-center w-max max-w-[90%] shadow-[0_0_20px_rgba(250,204,21,0.5)]">
+            AI: Ma trận số học đã khởi động...
+        </div>
+
+        <div id="game3-ui-container" class="w-full max-w-4xl mt-32 md:mt-0 opacity-0 transition-opacity duration-1000">
+            <div class="glass-panel p-6 md:p-8 mb-4 relative overflow-hidden bg-opacity-90">
+                <div class="absolute top-0 left-0 w-1 h-full bg-yellow-500"></div>
+                <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+                    <span class="bg-yellow-900 text-yellow-300 text-xs px-3 py-1 rounded-full font-bold tracking-wider font-scifi">TÍNH TOÁN SỐ HỌC</span>
+                    <span class="text-gray-400 text-sm font-scifi" id="game3-question-id">DATA ID: #G3-Q001</span>
+                </div>
+                <div id="game3-question-text" class="text-lg md:text-xl font-medium leading-relaxed math-content text-white">
+                    Đang tải ma trận toán học...
+                </div>
+            </div>
+
+            <!-- Numeric Input Box -->
+            <div class="glass-panel p-6 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 border border-yellow-500">
+                <input type="text" inputmode="decimal" autocomplete="off" id="game3-answer-input" onkeypress="if(event.key === 'Enter') game3.submitAnswer()" placeholder="NHẬP ĐÁP ÁN; NHIỀU KẾT QUẢ DÙNG DẤU ;" class="w-full md:w-2/3 bg-gray-900 border-2 border-yellow-500 rounded-xl px-6 py-4 text-yellow-300 font-scifi text-center text-2xl focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_20px_#00f3ff]">
+                <button onclick="game3.submitAnswer()" class="btn-primary px-8 py-4 rounded-xl font-scifi text-lg w-full md:w-1/3 shadow-[0_0_15px_#facc15]">
+                    GỬI ĐÁP ÁN
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME 3 RESULT UI -->
+    <div id="screen-result3" class="screen justify-center items-center bg-black bg-opacity-90 backdrop-blur-md z-30">
+        <div class="max-w-2xl w-full text-center glass-panel p-6 md:p-10 relative overflow-hidden mx-4">
+            <div id="result3-bg-effect" class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-yellow-500 to-transparent opacity-10 rounded-full blur-3xl"></div>
+            
+            <h2 id="result3-title" class="font-scifi text-3xl md:text-4xl text-yellow-400 mb-2 glow-text">MATRIX VICTORY</h2>
+            <div class="text-gray-400 mb-6 font-scifi text-sm tracking-widest flex justify-center items-center gap-2">
+                🚀 SUPREME EXPLORER <span id="result3-player-name" class="text-white font-bold">NAME</span>
+            </div>
+            
+            <div class="mb-8 py-4 bg-gray-900 bg-opacity-50 border-y border-gray-700">
+                <div id="result3-stars" class="text-2xl md:text-3xl text-yellow-400 mb-1 drop-shadow-[0_0_8px_#facc15]">⭐⭐⭐⭐⭐</div>
+                <div id="result3-rank" class="font-scifi text-2xl md:text-3xl text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-red-500 font-bold drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]">MATRIX OVERLORD</div>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center bg-black bg-opacity-40 p-4 rounded-xl mb-6 border border-gray-700">
+                <div>
+                    <div class="text-gray-500 text-xs font-scifi mb-1">SCORE</div>
+                    <div class="text-yellow-300 font-bold text-xl font-scifi" id="result3-score">0</div>
+                </div>
+                <div>
+                    <div class="text-gray-500 text-xs font-scifi mb-1">CORRECT</div>
+                    <div class="text-white font-bold text-xl font-scifi" id="result3-correct">0 / 10</div>
+                </div>
+                <div class="col-span-2 md:col-span-2 bg-gray-800 bg-opacity-50 rounded-lg p-2 border border-gray-600 relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-r from-yellow-900 to-red-900 opacity-30"></div>
+                    <div class="text-gray-300 text-xs font-scifi mb-1 relative z-10">MATH POWER</div>
+                    <div class="text-yellow-400 font-bold text-3xl font-scifi drop-shadow-[0_0_10px_#facc15]" id="result3-power">0%</div>
+                </div>
+            </div>
+
+            <div id="result3-actions" class="flex flex-col md:flex-row gap-4 justify-center">
+                <button onclick="showSummaryModal()" class="btn-primary px-8 py-4 rounded-full font-scifi text-base md:text-lg w-full shadow-[0_0_20px_rgba(250,204,21,0.6)]">
+                    📊 XEM BẢNG TỔNG HỢP ĐÁNH GIÁ 3 GAME
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUMMARY MODAL (BẢNG TỔNG HỢP ĐÁNH GIÁ 3 GAME) -->
+    <div id="modal-summary" class="absolute inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-md hidden">
+        <div class="glass-panel p-6 md:p-8 max-w-2xl w-full relative mx-4 text-center border border-cyan-400 shadow-[0_0_30px_rgba(0,243,255,0.3)]">
+            <h2 class="text-2xl md:text-3xl font-scifi text-cyan-400 mb-2 glow-text">BẢNG TỔNG HỢP ĐÁNH GIÁ 3 GAME</h2>
+            <p class="text-gray-400 text-sm font-scifi mb-6">NHÀ THÁM HIỂM: <span id="summary-player-name" class="text-white font-bold">NAME</span></p>
+
+            <div class="overflow-x-auto mb-6">
+                <table class="w-full text-left border-collapse border border-gray-700 text-sm md:text-base">
+                    <thead>
+                        <tr class="bg-gray-800 bg-opacity-80 text-cyan-300 font-scifi border-b border-gray-700">
+                            <th class="p-3 border-r border-gray-700">Game</th>
+                            <th class="p-3 border-r border-gray-700 text-center">Điểm số</th>
+                            <th class="p-3 border-r border-gray-700 text-center">Math Power</th>
+                            <th class="p-3 text-center">Danh hiệu</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summary-table-body">
+                        <tr class="border-b border-gray-800">
+                            <td class="p-3 font-bold border-r border-gray-700 text-cyan-400">Game 1: Knowledge Gate</td>
+                            <td class="p-3 border-r border-gray-700 text-center" id="sum-g1-score">0</td>
+                            <td class="p-3 border-r border-gray-700 text-center text-yellow-400 font-bold" id="sum-g1-power">0%</td>
+                            <td class="p-3 text-center text-purple-300 font-scifi text-xs md:text-sm" id="sum-g1-rank">-</td>
+                        </tr>
+                        <tr class="border-b border-gray-800">
+                            <td class="p-3 font-bold border-r border-gray-700 text-purple-400">Game 2: Truth Dimension</td>
+                            <td class="p-3 border-r border-gray-700 text-center" id="sum-g2-score">0</td>
+                            <td class="p-3 border-r border-gray-700 text-center text-yellow-400 font-bold" id="sum-g2-power">0%</td>
+                            <td class="p-3 text-center text-pink-300 font-scifi text-xs md:text-sm" id="sum-g2-rank">-</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold border-r border-gray-700 text-yellow-400">Game 3: Numerical Matrix</td>
+                            <td class="p-3 border-r border-gray-700 text-center" id="sum-g3-score">0</td>
+                            <td class="p-3 border-r border-gray-700 text-center text-yellow-400 font-bold" id="sum-g3-power">0%</td>
+                            <td class="p-3 text-center text-amber-300 font-scifi text-xs md:text-sm" id="sum-g3-rank">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-4 bg-gray-900 bg-opacity-80 rounded-xl border border-cyan-500/30 mb-6 text-left">
+                <div class="text-xs text-gray-400 font-scifi mb-1">ĐÁNH GIÁ TỔNG THỂ HỆ THỐNG</div>
+                <div id="summary-overall-eval" class="text-sm md:text-base text-cyan-200 font-light leading-relaxed">
+                    Đang tính toán chỉ số tổng hợp...
+                </div>
+            </div>
+
+            <button onclick="location.reload()" class="btn-primary px-8 py-3 rounded-full font-scifi text-base w-full md:w-auto shadow-[0_0_15px_#00f3ff]">
+                🏆 KHỞI ĐỘNG LẠI THIÊN HÀ
+            </button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="modal-settings" class="absolute inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 hidden">
+        <div class="glass-panel p-8 max-w-sm w-full relative">
+            <h3 class="text-2xl font-scifi text-cyan-400 mb-6 border-b border-gray-700 pb-2">SYSTEM SETTINGS</h3>
+            
+            <div class="space-y-4 mb-8">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-300 font-scifi">AUDIO / SFX</span>
+                    <button onclick="toggleAudio()" id="btn-audio" class="px-4 py-1 rounded bg-cyan-900 text-cyan-300 border border-cyan-500 font-bold">ON</button>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-300 font-scifi">PARTICLES</span>
+                    <button onclick="toggleParticles()" id="btn-particles" class="px-4 py-1 rounded bg-cyan-900 text-cyan-300 border border-cyan-500 font-bold">ON</button>
+                </div>
+            </div>
+            
+            <button onclick="closeSettings()" class="btn-primary w-full py-2 rounded-full font-scifi">RESUME</button>
+            
+            <div class="mt-4 pt-4 border-t border-gray-700 text-center">
+                 <button onclick="clearSaveData()" class="text-xs text-red-500 hover:text-red-400 font-scifi underline">XÓA DỮ LIỆU NGƯỜI CHƠI</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. GLOBAL VARIABLES & SAVE SYSTEM
+        let playerName = "";
+        let schoolName = "";
+        let globalGameState = {
+            game1: { completed: false, score: 0, maxScore: 3000, powerPercent: 0, rank: "", unlockedNextBattle: false },
+            game2: { completed: false, score: 0, maxScore: 3000, powerPercent: 0, rank: "", unlockedNextBattle: false },
+            game3: { completed: false, score: 0, maxScore: 1000, powerPercent: 0, rank: "", unlockedNextBattle: false }
+        };
+
+        // 1.1 GOOGLE FORM SYNC SYSTEM
+        const GFORM_CONFIG = {
+            submitURL: "https://docs.google.com/forms/d/e/1FAIpQLScijhZmFQ3j5WMMZnTJaPPLdPue-p9Nc1zhUV9lzS9Q0dr7gg/formResponse",
+            fields: {
+                galaxy: "entry.1767755027",
+                playerName: "entry.1674078939",
+                powerPercent: "entry.102901968",
+                rank: "entry.1566675295"
+            },
+            enabled: true
+        };
+
+        async function submitDataToGoogleForm(galaxy, name, power, rank) {
+            if (!GFORM_CONFIG.enabled || !GFORM_CONFIG.submitURL || GFORM_CONFIG.submitURL.includes("YOUR_FORM_ID")) {
+                console.log("[V2.2] Google Form Sync chưa được kích hoạt.");
+                return false;
+            }
+            console.log("[V2.2] 📡 Đang truyền tín hiệu về Trạm Chỉ Huy...");
+            const formData = new FormData();
+            formData.append(GFORM_CONFIG.fields.galaxy, galaxy || "");
+            formData.append(GFORM_CONFIG.fields.playerName, name || "");
+            formData.append(GFORM_CONFIG.fields.powerPercent, String(power ?? ""));
+            formData.append(GFORM_CONFIG.fields.rank, rank || "");
+
+            try {
+                await fetch(GFORM_CONFIG.submitURL, { method: "POST", mode: "no-cors", body: formData });
+                console.log("[V2.2] 📡 Đã gửi yêu cầu truyền dữ liệu tới Google Form.");
+                return true;
+            } catch (error) {
+                console.error("[V2.2] ❌ Lỗi đường truyền Google Form:", error);
+                return false;
+            }
+        }
+
+        function initSaveSystem() {
+            const savedName = localStorage.getItem('mathWar8_playerName');
+            if(savedName) {
+                playerName = savedName;
+                document.getElementById('player-name-input').value = playerName;
+            }
+            const savedSchool = localStorage.getItem('mathWar8_schoolName');
+            if(savedSchool) {
+                schoolName = savedSchool;
+                document.getElementById('school-name-input').value = schoolName;
+            }
+        }
+        
+        function savePlayerData(power, rank, unlocked) {
+            localStorage.setItem('mathWar8_game1_score', game.score);
+            localStorage.setItem('mathWar8_game1_power', power);
+            localStorage.setItem('mathWar8_game1_rank', rank);
+            localStorage.setItem('mathWar8_game1_unlockedNextBattle', unlocked);
+            
+            globalGameState.game1 = {
+                completed: true, score: game.score, maxScore: 3000, 
+                powerPercent: power, rank: rank, unlockedNextBattle: unlocked
+            };
+        }
+
+        function clearSaveData() {
+            localStorage.removeItem('mathWar8_playerName');
+            localStorage.removeItem('mathWar8_schoolName');
+            localStorage.removeItem('mathWar8_game1_score');
+            localStorage.removeItem('mathWar8_game1_power');
+            localStorage.removeItem('mathWar8_game1_rank');
+            localStorage.removeItem('mathWar8_game1_unlockedNextBattle');
+            localStorage.removeItem('mathWar8_game2_score');
+            localStorage.removeItem('mathWar8_game2_power');
+            localStorage.removeItem('mathWar8_game2_rank');
+            localStorage.removeItem('mathWar8_game2_unlockedNextBattle');
+            localStorage.removeItem('mathWar8_game3_score');
+            localStorage.removeItem('mathWar8_game3_power');
+            localStorage.removeItem('mathWar8_game3_rank');
+            alert("Dữ liệu nhà thám hiểm đã được xóa. Tải lại hệ thống.");
+            location.reload();
+        }
+
+        // 2. AUDIO SYSTEM
+        const AudioSys = {
+            ctx: null, enabled: true,
+            init: function() {
+                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+            },
+            playTone: function(freq, type, duration, vol=0.1) {
+                if(!this.ctx || !this.enabled) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                    osc.connect(gain); gain.connect(this.ctx.destination);
+                    osc.start(); osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {}
+            },
+            click: () => AudioSys.playTone(600, 'sine', 0.1, 0.05),
+            correct: () => {
+                AudioSys.playTone(440, 'triangle', 0.1, 0.1);
+                setTimeout(() => AudioSys.playTone(554, 'triangle', 0.1, 0.1), 100);
+                setTimeout(() => AudioSys.playTone(659, 'triangle', 0.3, 0.15), 200);
+            },
+            wrong: () => {
+                AudioSys.playTone(200, 'sawtooth', 0.2, 0.1);
+                setTimeout(() => AudioSys.playTone(150, 'sawtooth', 0.4, 0.15), 150);
+            },
+            start: () => {
+                AudioSys.playTone(300, 'square', 0.2, 0.1);
+                setTimeout(() => AudioSys.playTone(400, 'square', 0.2, 0.1), 200);
+                setTimeout(() => AudioSys.playTone(500, 'square', 0.5, 0.15), 400);
+            },
+            cinematicGlow: () => {
+                AudioSys.playTone(200, 'sine', 2.0, 0.1);
+                setTimeout(() => AudioSys.playTone(300, 'sine', 2.0, 0.15), 1000);
+            },
+            warpSpeed: () => {
+                if(!AudioSys.ctx || !AudioSys.enabled) return;
+                const osc = AudioSys.ctx.createOscillator();
+                const gain = AudioSys.ctx.createGain();
+                osc.type = 'sawtooth'; 
+                osc.frequency.setValueAtTime(100, AudioSys.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, AudioSys.ctx.currentTime + 2.0);
+                gain.gain.setValueAtTime(0, AudioSys.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.3, AudioSys.ctx.currentTime + 1.0);
+                gain.gain.linearRampToValueAtTime(0, AudioSys.ctx.currentTime + 2.0);
+                osc.connect(gain); gain.connect(AudioSys.ctx.destination);
+                osc.start(); osc.stop(AudioSys.ctx.currentTime + 2.0);
+            },
+            battleTransition: () => {
+                if (!AudioSys.ctx || !AudioSys.enabled) return;
+                const ctx = AudioSys.ctx, now = ctx.currentTime;
+                const o = ctx.createOscillator(), g = ctx.createGain();
+                o.type = 'sine';
+                o.frequency.setValueAtTime(90, now);
+                o.frequency.exponentialRampToValueAtTime(320, now + 0.9);
+                g.gain.setValueAtTime(0.0001, now);
+                g.gain.exponentialRampToValueAtTime(0.22, now + 0.2);
+                g.gain.exponentialRampToValueAtTime(0.0001, now + 1.5);
+                o.connect(g); g.connect(ctx.destination); o.start(now); o.stop(now + 1.55);
+                setTimeout(() => AudioSys.playTone(220, 'triangle', 0.16, 0.08), 180);
+                setTimeout(() => AudioSys.playTone(330, 'triangle', 0.18, 0.09), 340);
+                setTimeout(() => AudioSys.playTone(494, 'triangle', 0.30, 0.12), 520);
+            },
+            finalBattleTransition: () => {
+                if (!AudioSys.ctx || !AudioSys.enabled) return;
+                const ctx = AudioSys.ctx, now = ctx.currentTime;
+                const o = ctx.createOscillator(), g = ctx.createGain();
+                o.type = 'sawtooth';
+                o.frequency.setValueAtTime(70, now);
+                o.frequency.exponentialRampToValueAtTime(1200, now + 1.15);
+                g.gain.setValueAtTime(0.0001, now);
+                g.gain.exponentialRampToValueAtTime(0.24, now + 0.75);
+                g.gain.exponentialRampToValueAtTime(0.0001, now + 1.3);
+                o.connect(g); g.connect(ctx.destination); o.start(now); o.stop(now + 1.35);
+                setTimeout(() => AudioSys.playTone(180, 'square', 0.10, 0.08), 180);
+                setTimeout(() => AudioSys.playTone(360, 'square', 0.10, 0.08), 360);
+                setTimeout(() => AudioSys.playTone(720, 'sawtooth', 0.12, 0.07), 560);
+                setTimeout(() => AudioSys.playTone(110, 'sawtooth', 0.45, 0.18), 820);
+                setTimeout(() => AudioSys.playTone(880, 'triangle', 0.45, 0.10), 980);
+            },
+            victoryCinematic: () => {
+                if (!AudioSys.ctx || !AudioSys.enabled) return;
+                AudioSys.playTone(392, 'triangle', 0.18, 0.09);
+                setTimeout(() => AudioSys.playTone(523, 'triangle', 0.18, 0.10), 140);
+                setTimeout(() => AudioSys.playTone(659, 'triangle', 0.22, 0.11), 280);
+                setTimeout(() => AudioSys.playTone(784, 'triangle', 0.45, 0.13), 450);
+                setTimeout(() => AudioSys.playTone(1046, 'sine', 0.75, 0.07), 700);
+            }
+        };
+
+        // 3. RAW DATA (Game 1)
+        const RAW_DATA = [
+            { id: 1, type: 'single', chapter: 'TỨ GIÁC', q: "Tứ giác ABCD là hình gồm", opts: ["bốn đoạn thẳng AB, BC, CD, DA, trong đó không có hai đoạn thẳng nào nằm trên cùng một đường thẳng.", "ba đoạn thẳng nối ba điểm không thẳng hàng.", "bốn đoạn thẳng bất kỳ nối bốn điểm.", "bốn đoạn thẳng trong đó luôn có hai đoạn thẳng nằm trên cùng một đường thẳng."], ans: [0] },
+            { id: 2, type: 'single', chapter: 'TỨ GIÁC', q: "Tứ giác lồi là tứ giác mà", opts: ["hai đỉnh thuộc một cạnh bất kì luôn nằm về một phía của đường thẳng đi qua cạnh đó.", "hai đường chéo luôn vuông góc với nhau.", "bốn góc đều bằng nhau.", "hai cạnh đối luôn bằng nhau."], ans: [0] },
+            { id: 3, type: 'single', chapter: 'TỨ GIÁC', q: "Trong một tứ giác, hai đỉnh không cùng thuộc một cạnh được gọi là", opts: ["hai đỉnh đối nhau.", "hai đỉnh kề nhau.", "hai đỉnh liên tiếp.", "hai đỉnh phụ thuộc."], ans: [0] },
+            { id: 4, type: 'single', chapter: 'TỨ GIÁC', q: "Tổng số đo các góc của một tứ giác bằng", opts: ["180°", "270°", "360°", "720°"], ans: [2] }, 
+            { id: 5, type: 'single', chapter: 'HÌNH THANG', q: "Hình thang là tứ giác có", opts: ["hai cạnh đối song song.", "hai cạnh kề bằng nhau.", "hai đường chéo bằng nhau.", "bốn góc bằng nhau."], ans: [0] },
+            { id: 6, type: 'single', chapter: 'HÌNH THANG CÂN', q: "Hình thang cân là hình thang có", opts: ["hai góc kề một đáy bằng nhau.", "hai cạnh bên vuông góc với nhau.", "hai đường chéo vuông góc.", "hai đáy bằng nhau."], ans: [0] },
+            { id: 7, type: 'single', chapter: 'HÌNH THANG CÂN', q: "Trong hình thang cân, hai cạnh bên", opts: ["bằng nhau.", "song song với nhau.", "vuông góc với nhau.", "luôn bằng hai đáy."], ans: [0] },
+            { id: 8, type: 'single', chapter: 'HÌNH THANG CÂN', q: "Trong hình thang cân, hai đường chéo", opts: ["bằng nhau.", "vuông góc với nhau.", "cắt nhau tại trung điểm mỗi đường.", "là các đường phân giác của các góc."], ans: [0] },
+            { id: 9, type: 'single', chapter: 'HÌNH THANG CÂN', q: "Một hình thang có hai đường chéo bằng nhau thì", opts: ["là hình thang cân.", "luôn là hình bình hành.", "luôn là hình chữ nhật.", "luôn là hình vuông."], ans: [0] },
+            { id: 24, type: 'multiple', chapter: 'HÌNH THANG CÂN', q: "Những phát biểu nào đúng về hình thang cân? Chọn tất cả các phương án đúng.", opts: ["Hai góc kề một đáy bằng nhau.", "Hai cạnh bên bằng nhau.", "Hai đường chéo bằng nhau.", "Hai đáy luôn bằng nhau.", "Hai đường chéo luôn vuông góc với nhau."], ans: [0, 1, 2] },
+            { id: 10, type: 'single', chapter: 'HÌNH BÌNH HÀNH', q: "Hình bình hành là tứ giác có", opts: ["các cạnh đối song song.", "bốn cạnh bằng nhau.", "bốn góc vuông.", "hai đường chéo vuông góc."], ans: [0] },
+            { id: 11, type: 'single', chapter: 'HÌNH BÌNH HÀNH', q: "Trong hình bình hành, các cạnh đối", opts: ["bằng nhau.", "luôn vuông góc.", "không có quan hệ gì.", "luôn bằng đường chéo."], ans: [0] },
+            { id: 12, type: 'single', chapter: 'HÌNH BÌNH HÀNH', q: "Trong hình bình hành, các góc đối", opts: ["bằng nhau.", "bù nhau.", "luôn bằng 90°.", "luôn khác nhau."], ans: [0] },
+            { id: 13, type: 'single', chapter: 'HÌNH BÌNH HÀNH', q: "Trong hình bình hành, hai đường chéo", opts: ["cắt nhau tại trung điểm của mỗi đường.", "bằng nhau.", "vuông góc với nhau.", "là các đường phân giác của mọi góc."], ans: [0] },
+            { id: 14, type: 'single', chapter: 'HÌNH BÌNH HÀNH', q: "Dấu hiệu nào sau đây nhận biết một tứ giác là hình bình hành?", opts: ["Tứ giác có các cạnh đối bằng nhau.", "Tứ giác có hai cạnh kề bằng nhau.", "Tứ giác có một góc vuông.", "Tứ giác có hai đường chéo bằng nhau."], ans: [0] },
+            { id: 15, type: 'single', chapter: 'HÌNH BÌNH HÀNH', q: "Một tứ giác có một cặp cạnh đối vừa song song vừa bằng nhau thì", opts: ["là hình bình hành.", "là hình thang cân.", "là hình chữ nhật.", "là hình vuông."], ans: [0] },
+            { id: 16, type: 'single', chapter: 'HÌNH BÌNH HÀNH', q: "Một tứ giác có các góc đối bằng nhau thì", opts: ["là hình bình hành.", "chắc chắn là hình thoi.", "chắc chắn là hình vuông.", "chắc chắn là hình chữ nhật."], ans: [0] },
+            { id: 17, type: 'single', chapter: 'HÌNH BÌNH HÀNH', q: "Nếu hai đường chéo của một tứ giác cắt nhau tại trung điểm của mỗi đường thì tứ giác đó là", opts: ["hình bình hành.", "hình thang cân.", "hình chữ nhật.", "hình thoi."], ans: [0] },
+            { id: 23, type: 'multiple', chapter: 'HÌNH BÌNH HÀNH', q: "Những phát biểu nào đúng về hình bình hành? Chọn tất cả các phương án đúng.", opts: ["Các cạnh đối bằng nhau.", "Các góc đối bằng nhau.", "Hai đường chéo cắt nhau tại trung điểm của mỗi đường.", "Hai đường chéo luôn bằng nhau.", "Hai đường chéo luôn vuông góc với nhau."], ans: [0, 1, 2] },
+            { id: 25, type: 'multiple', chapter: 'HÌNH BÌNH HÀNH', q: "Những điều kiện nào là dấu hiệu nhận biết hình bình hành theo tài liệu? Chọn tất cả các phương án đúng.", opts: ["Tứ giác có các cạnh đối bằng nhau.", "Tứ giác có một cặp cạnh đối song song và bằng nhau.", "Tứ giác có các góc đối bằng nhau.", "Tứ giác có hai đường chéo cắt nhau tại trung điểm của mỗi đường.", "Tứ giác có hai đường chéo bằng nhau."], ans: [0, 1, 2, 3] },
+            { id: 18, type: 'single', chapter: 'HÌNH CHỮ NHẬT', q: "Hình chữ nhật là", opts: ["tứ giác có bốn góc vuông.", "tứ giác có bốn cạnh bằng nhau.", "hình thang có hai đường chéo bằng nhau.", "tứ giác có hai đường chéo vuông góc."], ans: [0] },
+            { id: 19, type: 'single', chapter: 'HÌNH CHỮ NHẬT', q: "Trong hình chữ nhật, hai đường chéo", opts: ["bằng nhau và cắt nhau tại trung điểm của mỗi đường.", "vuông góc với nhau và bằng nhau.", "là các đường phân giác của các góc.", "không có quan hệ đặc biệt."], ans: [0] },
+            { id: 20, type: 'single', chapter: 'HÌNH CHỮ NHẬT', q: "Một hình bình hành có một góc vuông thì", opts: ["là hình chữ nhật.", "là hình thoi.", "là hình thang cân.", "là hình vuông."], ans: [0] },
+            { id: 21, type: 'single', chapter: 'HÌNH CHỮ NHẬT', q: "Một hình bình hành có hai đường chéo bằng nhau thì", opts: ["là hình chữ nhật.", "là hình thoi.", "là hình vuông.", "là hình thang cân."], ans: [0] },
+            { id: 26, type: 'multiple', chapter: 'HÌNH CHỮ NHẬT', q: "Những phát biểu nào đúng về hình chữ nhật? Chọn tất cả các phương án đúng.", opts: ["Hình chữ nhật là tứ giác có bốn góc vuông.", "Hai đường chéo bằng nhau.", "Hai đường chéo cắt nhau tại trung điểm của mỗi đường.", "Hai đường chéo luôn vuông góc với nhau.", "Hình chữ nhật không có tính chất của hình bình hành."], ans: [0, 1, 2] },
+            { id: 27, type: 'multiple', chapter: 'HÌNH CHỮ NHẬT', q: "Những điều kiện nào có thể nhận biết hình chữ nhật theo tài liệu? Chọn tất cả các phương án đúng.", opts: ["Hình bình hành có một góc vuông.", "Hình bình hành có hai đường chéo bằng nhau.", "Tứ giác có hai đường chéo bằng nhau và cắt nhau tại trung điểm của mỗi đường.", "Hình bình hành có bốn cạnh bằng nhau.", "Hình thang có hai cạnh bên bằng nhau."], ans: [0, 1, 2] },
+            { id: 22, type: 'single', chapter: 'HÌNH THOI', q: "Hình thoi là", opts: ["tứ giác có bốn cạnh bằng nhau.", "tứ giác có bốn góc vuông.", "hình bình hành có hai đường chéo bằng nhau.", "hình thang có hai cạnh bên bằng nhau."], ans: [0] },
+            { id: 28, type: 'multiple', chapter: 'HÌNH THOI', q: "Những phát biểu nào đúng về hình thoi? Chọn tất cả các phương án đúng.", opts: ["Hình thoi có bốn cạnh bằng nhau.", "Hai đường chéo vuông góc với nhau.", "Hai đường chéo là các đường phân giác của các góc trong hình thoi.", "Hình thoi luôn có bốn góc vuông.", "Hình thoi không phải là hình bình hành."], ans: [0, 1, 2] },
+            { id: 29, type: 'multiple', chapter: 'HÌNH THOI', q: "Những điều kiện nào là dấu hiệu nhận biết hình thoi theo tài liệu? Chọn tất cả các phương án đúng.", opts: ["Hình bình hành có hai cạnh kề bằng nhau.", "Hình bình hành có hai đường chéo vuông góc với nhau.", "Hình bình hành có một đường chéo là đường phân giác của một góc.", "Hình bình hành có hai đường chéo bằng nhau.", "Hình bình hành có một góc vuông."], ans: [0, 1, 2] },
+            { id: 30, type: 'multiple', chapter: 'HÌNH VUÔNG', q: "Những phát biểu nào đúng về hình vuông? Chọn tất cả các phương án đúng.", opts: ["Hình vuông có bốn góc vuông và bốn cạnh bằng nhau.", "Hai đường chéo bằng nhau.", "Hai đường chéo vuông góc với nhau.", "Hai đường chéo cắt nhau tại trung điểm mỗi đường và là các đường phân giác của các góc.", "Hình vuông không có các tính chất của hình chữ nhật và hình thoi."], ans: [0, 1, 2, 3] }
+        ];
+
+        // 4. GAME MANAGER 1
+        class GameManager {
+            constructor() {
+                this.score = 0;
+                this.energy = 1000;
+                this.maxEnergy = 1000;
+                this.currentIndex = 0;
+                this.sessionQuestions = [];
+                this.currentQuestionData = null;
+                this.currentSelected = new Set();
+                this.isProcessingAnswer = false;
+                this.correctCount = 0;
+            }
+
+            initSession() {
+                const chapters = [...new Set(RAW_DATA.map(q => q.chapter))];
+                let shuffled = [];
+                chapters.forEach(chap => {
+                    let qs = RAW_DATA.filter(q => q.chapter === chap);
+                    qs = this.shuffleArray(qs);
+                    shuffled = shuffled.concat(qs);
+                });
+
+                this.sessionQuestions = shuffled.map(q => {
+                    let optIndices = q.opts.map((_, i) => i);
+                    optIndices = this.shuffleArray(optIndices);
+                    let newOpts = optIndices.map(i => q.opts[i]);
+                    let newAns = q.ans.map(oldIndex => optIndices.indexOf(oldIndex)).sort((a,b) => a - b);
+
+                    // Keep the English voice translations synchronized with the SAME
+                    // shuffled order used by the visible options. EnglishChoiceVoice is
+                    // stored in original order, so it must be shuffled by optIndices too.
+                    const voiceKey = `G1-${String(q.id).replace(/^G1-/, '')}`;
+                    const originalEnglishOpts = (typeof EnglishChoiceVoice !== 'undefined' &&
+                        EnglishChoiceVoice.map && EnglishChoiceVoice.map[voiceKey])
+                        ? EnglishChoiceVoice.map[voiceKey] : null;
+                    const newVoiceOpts = originalEnglishOpts
+                        ? optIndices.map(i => originalEnglishOpts[i])
+                        : null;
+
+                    return { ...q, opts: newOpts, ans: newAns, voiceOpts: newVoiceOpts };
+                });
+
+                this.score = 0;
+                this.energy = 1000;
+                this.currentIndex = 0;
+                this.correctCount = 0;
+                this.updateHUD();
+                this.generateProgressBlocks();
+                
+                setTimeout(() => {
+                    document.getElementById('game-ui-container').style.opacity = 1;
+                    this.loadQuestion();
+                }, 1000);
+            }
+
+            shuffleArray(arr) {
+                let array = [...arr];
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+
+            loadQuestion() {
+                // Never allow narration from the previous question to leak into this one.
+                stopEnglishNarration();
+
+                if (this.currentIndex >= this.sessionQuestions.length) {
+                    this.finishGame(true);
+                    return;
+                }
+
+                this.isProcessingAnswer = false;
+                this.currentSelected.clear();
+                this.currentQuestionData = this.sessionQuestions[this.currentIndex];
+                const q = this.currentQuestionData;
+
+                document.getElementById('chapter-display').innerText = `CHƯƠNG: ${q.chapter}`;
+                document.getElementById('question-type-badge').innerText = q.type === 'single' ? 'TRẮC NGHIỆM 1 LỰA CHỌN' : 'TRẮC NGHIỆM NHIỀU LỰA CHỌN';
+                document.getElementById('question-type-badge').className = `text-xs px-3 py-1 rounded-full font-bold tracking-wider font-scifi ${q.type==='multiple'?'bg-purple-900 text-purple-300':'bg-cyan-900 text-cyan-300'}`;
+                document.getElementById('question-id-display').innerText = `DATA ID: #${q.id.toString().padStart(2, '0')}`;
+                document.getElementById('question-text').innerText = q.q;
+
+                const container = document.getElementById('options-container');
+                container.innerHTML = '';
+                const labels = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+                q.opts.forEach((optText, index) => {
+                    const btn = document.createElement('div');
+                    btn.className = 'btn-option p-4 rounded-xl flex items-start gap-4';
+                    btn.dataset.index = index;
+                    btn.onclick = () => this.selectOption(index, btn);
+                    // Attach the English phrase belonging to THIS shuffled option.
+                    btn.dataset.voice = q.voiceOpts?.[index] || '';
+                    btn.innerHTML = `
+                        <div class="w-8 h-8 rounded bg-gray-800 text-cyan-300 flex items-center justify-center font-bold flex-shrink-0 border border-gray-600 label-box shadow-[0_0_5px_rgba(0,243,255,0.2)]">
+                            ${labels[index]}
+                        </div>
+                        <div class="text-sm md:text-base pt-1">${optText}</div>
+                    `;
+                    container.appendChild(btn);
+                });
+
+                // q.opts is already shuffled and is the exact order displayed on screen.
+                // Therefore the spoken Option A/B/C/D always matches the visible A/B/C/D.
+                // Read the exact English phrase attached to each rendered button.
+                // This guarantees spoken A/B/C/D matches the visible A/B/C/D.
+                const displayedChoices = Array.from(container.querySelectorAll('.btn-option'))
+                    .map(el => el.dataset.voice || '')
+                    .filter(Boolean);
+
+                speakEnglishQuestionAndChoices(`G1-${String(q.id).replace(/^G1-/, '')}`, q.q, displayedChoices);
+
+                if (q.type === 'multiple') {
+                    document.getElementById('submit-container').classList.remove('hidden');
+                } else {
+                    document.getElementById('submit-container').classList.add('hidden');
+                }
+
+                document.getElementById('progress-text').innerText = `${(this.currentIndex + 1).toString().padStart(2, '0')}/${this.sessionQuestions.length}`;
+            }
+
+            selectOption(index, btnElem) {
+                if (this.isProcessingAnswer) return;
+                AudioSys.click();
+
+                if (this.currentQuestionData.type === 'multiple') {
+                    if (this.currentSelected.has(index)) {
+                        this.currentSelected.delete(index);
+                        btnElem.classList.remove('selected');
+                        btnElem.querySelector('.label-box').classList.remove('bg-purple-900', 'border-purple-400', 'text-white');
+                    } else {
+                        this.currentSelected.add(index);
+                        btnElem.classList.add('selected');
+                        btnElem.querySelector('.label-box').classList.add('bg-purple-900', 'border-purple-400', 'text-white');
+                    }
+                } else {
+                    this.currentSelected.clear();
+                    this.currentSelected.add(index);
+                    document.querySelectorAll('.btn-option').forEach(el => el.classList.remove('selected'));
+                    btnElem.classList.add('selected');
+                    this.processAnswer();
+                }
+            }
+
+            processAnswer() {
+                if (this.isProcessingAnswer) return;
+
+                // The student has answered: stop the current question narration immediately.
+                // Any queued callbacks from the old narration are invalidated by the generation token.
+                stopEnglishNarration();
+                
+                if (this.currentQuestionData.type === 'multiple' && this.currentSelected.size === 0) {
+                    this.showAI("Vui lòng chọn ít nhất một đáp án!", "error");
+                    return;
+                }
+
+                this.isProcessingAnswer = true;
+                const correctArr = this.currentQuestionData.ans;
+                const selectedArr = Array.from(this.currentSelected).sort((a,b) => a - b);
+                const isCorrect = JSON.stringify(selectedArr) === JSON.stringify(correctArr);
+                
+                const opts = document.querySelectorAll('.btn-option');
+                opts.forEach(opt => {
+                    opt.classList.add('disabled');
+                    const idx = parseInt(opt.dataset.index);
+                    if (correctArr.includes(idx)) opt.classList.add('correct');
+                    if (selectedArr.includes(idx) && !correctArr.includes(idx)) opt.classList.add('wrong');
+                });
+
+                if (isCorrect) {
+                    this.score += 100;
+                    this.correctCount++;
+                    this.energy = Math.min(this.maxEnergy, this.energy + 100);
+                    AudioSys.correct();
+                    SpaceRenderer.triggerMathCorePulse(true);
+                    
+                    if (SpaceRenderer.astronaut) SpaceRenderer.astronaut.setState('CORRECT');
+                    
+                    const praiseArr = ["Excellent", "Tuyệt vời", "Chính xác", "Năng lượng được nạp"];
+                    const randomPraise = praiseArr[Math.floor(Math.random()*praiseArr.length)];
+                    this.showAI(`${randomPraise}, ${playerName}!`, "success");
+                    this.updateProgressBlock(this.currentIndex, true);
+                } else {
+                    this.energy = Math.max(0, this.energy - 50);
+                    AudioSys.wrong();
+                    SpaceRenderer.triggerMathCorePulse(false);
+                    document.getElementById('screen-game').classList.add('shake');
+                    setTimeout(() => document.getElementById('screen-game').classList.remove('shake'), 500);
+                    
+                    if (SpaceRenderer.astronaut) SpaceRenderer.astronaut.setState('WRONG');
+                    
+                    if (this.energy < 300) this.showAI(`Cẩn thận ${playerName}, Math Core đang suy yếu!`, "error");
+                    else this.showAI("Chưa chính xác. Mất năng lượng!", "error");
+                    
+                    this.updateProgressBlock(this.currentIndex, false);
+                }
+
+                this.updateHUD();
+
+                if (this.energy <= 0) {
+                    setTimeout(() => this.finishGame(false), 2000);
+                } else {
+                    setTimeout(() => {
+                        this.currentIndex++;
+                        this.loadQuestion();
+                    }, isCorrect ? 1500 : 3000);
+                }
+            }
+
+            updateHUD() {
+                document.getElementById('score-display').innerText = this.score;
+                const energyPct = Math.max(0, Math.min(100, (this.energy / this.maxEnergy) * 100));
+                document.getElementById('energy-bar').style.width = `${energyPct}%`;
+                document.getElementById('energy-text').innerText = `${Math.floor(energyPct)}%`;
+                
+                if(energyPct < 30) {
+                    document.getElementById('energy-bar').className = "bg-red-500 h-full w-full transition-all shadow-[0_0_10px_#ff0000] animate-pulse";
+                } else {
+                    document.getElementById('energy-bar').className = "bg-gradient-to-r from-cyan-500 to-purple-500 h-full w-full transition-all shadow-[0_0_10px_#00f3ff]";
+                }
+            }
+
+            generateProgressBlocks() {
+                const container = document.getElementById('progress-blocks');
+                container.innerHTML = '';
+                for(let i=0; i<30; i++) {
+                    const b = document.createElement('div');
+                    b.className = 'flex-1 bg-gray-800 rounded-sm opacity-40';
+                    b.id = `prog-block-${i}`;
+                    container.appendChild(b);
+                }
+            }
+
+            updateProgressBlock(index, isCorrect) {
+                const b = document.getElementById(`prog-block-${index}`);
+                if(b) b.className = `flex-1 rounded-sm opacity-100 ${isCorrect ? 'bg-cyan-400 shadow-[0_0_5px_#00f3ff]' : 'bg-red-500 shadow-[0_0_5px_#ff0000]'}`;
+            }
+
+            showAI(msg, type) {
+                const el = document.getElementById('ai-message');
+                el.innerText = `AI: ${msg}`;
+                let color = type === 'success' ? 'border-green-400 text-green-300 shadow-[0_0_20px_rgba(0,255,100,0.5)]' : 
+                            type === 'error' ? 'border-red-400 text-red-300 shadow-[0_0_20px_rgba(255,50,50,0.5)]' : 
+                            'border-cyan-400 text-cyan-300 shadow-[0_0_20px_rgba(0,243,255,0.5)]';
+                
+                el.className = `absolute top-[12%] md:top-[18%] left-1/2 transform -translate-x-1/2 bg-blue-900 bg-opacity-90 border-2 px-6 py-3 rounded-full font-scifi text-sm tracking-wide z-50 text-center w-max max-w-[90%] transition-opacity duration-300 ${color}`;
+                el.style.opacity = 1;
+                setTimeout(() => el.style.opacity = 0, 2500);
+            }
+
+            async finishGame(completed = true) {
+                document.getElementById('hud').classList.remove('active');
+                
+                const maxScore = 3000;
+                let powerPercent = (this.score / maxScore) * 100;
+                
+                let rank = "", stars = "";
+                if(powerPercent >= 95) { rank = "GALACTIC MASTER"; stars = "⭐⭐⭐⭐⭐"; }
+                else if(powerPercent >= 90) { rank = "STAR COMMANDER"; stars = "⭐⭐⭐⭐"; }
+                else if(powerPercent >= 80) { rank = "COSMIC EXPLORER"; stars = "⭐⭐⭐"; }
+                else if(powerPercent >= 65) { rank = "SPACE ROOKIE"; stars = "⭐⭐"; }
+                else { rank = "GALAXY TRAINEE"; stars = "⭐"; }
+
+                const isUnlocked = (powerPercent >= 80); 
+                
+                savePlayerData(powerPercent, rank, isUnlocked);
+
+                if (completed) {
+                    submitDataToGoogleForm(
+                        "GAME 1: KNOWLEDGE GATE",
+                        playerName || "",
+                        powerPercent ?? 0,
+                        rank || ""
+                    ).catch(error => {
+                        console.error("[V2.2] Google Form Sync Error:", error);
+                    });
+                }
+
+                if(completed && isUnlocked) {
+                    await playAwakeningCinematic(powerPercent, rank, stars);
+                }
+                
+                this.renderResultScreen(completed, powerPercent, rank, stars, isUnlocked);
+            }
+
+            renderResultScreen(completed, powerPercent, rank, stars, isUnlocked) {
+                switchScreen('screen-result');
+                document.getElementById('result-player-name').innerText = playerName.toUpperCase();
+                document.getElementById('result-score').innerText = this.score;
+                document.getElementById('result-correct').innerText = `${this.correctCount} / 30`;
+                document.getElementById('result-power').innerText = `${powerPercent.toFixed(1)}%`;
+                
+                document.getElementById('result-stars').innerText = stars;
+                document.getElementById('result-rank').innerText = rank;
+
+                const titleEl = document.getElementById('result-title');
+                const statusBox = document.getElementById('result-status-box');
+                const statusIcon = document.getElementById('result-status-icon');
+                const statusText = document.getElementById('result-status-text');
+                const statusDesc = document.getElementById('result-status-desc');
+                const btnNext = document.getElementById('btn-next-battle');
+                const btnRetry = document.getElementById('btn-retry');
+                const bgEffect = document.getElementById('result-bg-effect');
+
+                if (isUnlocked) {
+                    titleEl.innerText = "KNOWLEDGE GATE COMPLETE";
+                    titleEl.className = "font-scifi text-3xl md:text-4xl text-cyan-400 mb-2 glow-text";
+                    bgEffect.className = "absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-cyan-500 to-transparent opacity-10 rounded-full blur-3xl";
+                    
+                    statusBox.className = "mb-8 p-4 border border-green-800 bg-green-900 bg-opacity-20 rounded-xl text-center flex flex-col items-center justify-center";
+                    statusIcon.innerText = "🟢";
+                    statusText.innerText = "NEXT BATTLE UNLOCKED";
+                    statusText.className = "font-scifi font-bold text-lg md:text-xl text-green-400";
+                    statusDesc.innerText = "Knowledge Gate đã công nhận sức mạnh của bạn.";
+                    
+                    btnNext.classList.remove('hidden');
+                    btnNext.style.display = 'block';
+                    btnNext.disabled = false;
+                    btnRetry.classList.add('hidden');
+                    btnRetry.style.display = 'none';
+                } else {
+                    titleEl.innerText = completed ? "TRAINING REQUIRED" : "MISSION FAILED";
+                    titleEl.className = "font-scifi text-3xl md:text-4xl text-red-500 mb-2 glow-text";
+                    bgEffect.className = "absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-red-500 to-transparent opacity-10 rounded-full blur-3xl";
+                    
+                    statusBox.className = "mb-8 p-4 border border-red-800 bg-red-900 bg-opacity-20 rounded-xl text-center flex flex-col items-center justify-center";
+                    statusIcon.innerText = "🔒";
+                    statusText.innerText = "NEXT BATTLE LOCKED";
+                    statusText.className = "font-scifi font-bold text-lg md:text-xl text-red-400";
+                    
+                    if(completed) {
+                        statusDesc.innerHTML = `Thiên hà chưa từ chối bạn. Nó chỉ yêu cầu bạn mạnh hơn.<br/>(Cần đạt <span class="text-white font-bold">80%</span>. Còn thiếu <span class="text-yellow-400">${(80 - powerPercent).toFixed(1)}%</span>)`;
+                    } else {
+                        statusDesc.innerText = "Math Core đã cạn kiệt năng lượng giữa chừng.";
+                    }
+                    
+                    btnNext.classList.add('hidden');
+                    btnRetry.classList.remove('hidden');
+                }
+            }
+        }
+        
+        const game = new GameManager();
+        function submitMultipleChoice() { game.processAnswer(); }
+
+        // 4.1 GAME MANAGER 2 (GATE 1)
+        const GAME2_DATA = [
+            { id: "G2-Q001", q: "Tứ giác có 4 cạnh.", ans: true, topic: "Tứ giác" },
+            { id: "G2-Q002", q: "Tổng các góc của một tứ giác bằng 180 độ.", ans: false, topic: "Tứ giác" },
+            { id: "G2-Q003", q: "Tứ giác lồi là tứ giác luôn nằm trong một nửa mặt phẳng có bờ là đường thẳng chứa bất kỳ cạnh nào của tứ giác.", ans: true, topic: "Tứ giác" },
+            { id: "G2-Q004", q: "Tứ giác có hai đường chéo cắt nhau tại trung điểm mỗi đường luôn là hình chữ nhật.", ans: false, topic: "Tứ giác" },
+            { id: "G2-Q005", q: "Tổng các góc ngoài của một tứ giác lồi bằng 360 độ.", ans: true, topic: "Tứ giác" },
+            { id: "G2-Q006", q: "Hình thang là tứ giác có hai cạnh đối song song.", ans: true, topic: "Hình thang" },
+            { id: "G2-Q007", q: "Hình thang vuông là hình thang có một góc vuông.", ans: true, topic: "Hình thang" },
+            { id: "G2-Q008", q: "Hình thang có hai cạnh bên bằng nhau luôn là hình thang cân.", ans: false, topic: "Hình thang" },
+            { id: "G2-Q009", q: "Hình thang cân có hai góc kề một đáy bằng nhau.", ans: true, topic: "Hình thang" },
+            { id: "G2-Q010", q: "Trong hình thang cân, hai đường chéo bằng nhau.", ans: true, topic: "Hình thang" },
+            { id: "G2-Q011", q: "Hình thang có hai đường chéo bằng nhau là hình thang cân.", ans: true, topic: "Hình thang" },
+            { id: "G2-Q012", q: "Đường trung bình của hình thang song song với hai đáy và bằng nửa tổng hai đáy.", ans: true, topic: "Hình thang" },
+            { id: "G2-Q013", q: "Đoạn thẳng nối trung điểm hai đường chéo của hình thang luôn song song với hai đáy.", ans: true, topic: "Hình thang" },
+            { id: "G2-Q014", q: "Hình bình hành là tứ giác có các cạnh đối song song.", ans: true, topic: "Hình bình hành" },
+            { id: "G2-Q015", q: "Hình bình hành có các góc đối bù nhau.", ans: false, topic: "Hình bình hành" },
+            { id: "G2-Q016", q: "Trong hình bình hành, hai đường chéo cắt nhau tại trung điểm của mỗi đường.", ans: true, topic: "Hình bình hành" },
+            { id: "G2-Q017", q: "Tứ giác có hai cạnh đối bằng nhau là hình bình hành.", ans: false, topic: "Hình bình hành" },
+            { id: "G2-Q018", q: "Tứ giác có một cặp cạnh đối vừa song song vừa bằng nhau là hình bình hành.", ans: true, topic: "Hình bình hành" },
+            { id: "G2-Q019", q: "Tứ giác có các góc đối bằng nhau là hình bình hành.", ans: true, topic: "Hình bình hành" },
+            { id: "G2-Q020", q: "Hình chữ nhật là tứ giác có bốn góc vuông.", ans: true, topic: "Hình chữ nhật" },
+            { id: "G2-Q021", q: "Hình chữ nhật là một hình bình hành đặc biệt.", ans: true, topic: "Hình chữ nhật" },
+            { id: "G2-Q022", q: "Hình chữ nhật cũng là một hình thang cân.", ans: true, topic: "Hình chữ nhật" },
+            { id: "G2-Q023", q: "Trong hình chữ nhật, hai đường chéo bằng nhau và cắt nhau tại trung điểm mỗi đường.", ans: true, topic: "Hình chữ nhật" },
+            { id: "G2-Q024", q: "Hình bình hành có hai đường chéo bằng nhau là hình chữ nhật.", ans: true, topic: "Hình chữ nhật" },
+            { id: "G2-Q025", q: "Hình thang cân có một góc vuông là hình chữ nhật.", ans: true, topic: "Hình chữ nhật" },
+            { id: "G2-Q026", q: "Hình thoi là tứ giác có bốn cạnh bằng nhau.", ans: true, topic: "Hình thoi" },
+            { id: "G2-Q027", q: "Hình thoi không phải là hình bình hành.", ans: false, topic: "Hình thoi" },
+            { id: "G2-Q028", q: "Trong hình thoi, hai đường chéo vuông góc với nhau.", ans: true, topic: "Hình thoi" },
+            { id: "G2-Q029", q: "Trong hình thoi, hai đường chéo là các đường phân giác của các góc của hình thoi.", ans: true, topic: "Hình thoi" },
+            { id: "G2-Q030", q: "Hình bình hành có hai cạnh kề bằng nhau là hình thoi.", ans: true, topic: "Hình thoi" },
+            { id: "G2-Q031", q: "Hình bình hành có hai đường chéo vuông góc với nhau là hình thoi.", ans: true, topic: "Hình thoi" },
+            { id: "G2-Q032", q: "Hình bình hành có một đường chéo là đường phân giác của một góc là hình thoi.", ans: true, topic: "Hình thoi" },
+            { id: "G2-Q033", q: "Hình vuông là tứ giác có bốn góc vuông và bốn cạnh bằng nhau.", ans: true, topic: "Hình vuông" },
+            { id: "G2-Q034", q: "Hình vuông vừa là hình chữ nhật, vừa là hình thoi.", ans: true, topic: "Hình vuông" },
+            { id: "G2-Q035", q: "Hình chữ nhật có hai cạnh kề bằng nhau là hình vuông.", ans: true, topic: "Hình vuông" },
+            { id: "G2-Q036", q: "Hình chữ nhật có hai đường chéo vuông góc với nhau là hình vuông.", ans: true, topic: "Hình vuông" },
+            { id: "G2-Q037", q: "Hình chữ nhật có một đường chéo là đường phân giác của một góc là hình vuông.", ans: true, topic: "Hình vuông" },
+            { id: "G2-Q038", q: "Hình thoi có một góc vuông là hình vuông.", ans: true, topic: "Hình vuông" },
+            { id: "G2-Q039", q: "Hình thoi có hai đường chéo bằng nhau là hình vuông.", ans: true, topic: "Hình vuông" },
+            { id: "G2-Q040", q: "Hai điểm gọi là đối xứng với nhau qua điểm O nếu O là trung điểm của đoạn thẳng nối hai điểm đó.", ans: true, topic: "Đối xứng" },
+            { id: "G2-Q041", q: "Hình bình hành nhận giao điểm hai đường chéo làm tâm đối xứng.", ans: true, topic: "Đối xứng" },
+            { id: "G2-Q042", q: "Hai điểm gọi là đối xứng với nhau qua đường thẳng d nếu d là đường trung trực của đoạn thẳng nối hai điểm đó.", ans: true, topic: "Đối xứng" },
+            { id: "G2-Q043", q: "Hình thang cân nhận đường thẳng đi qua trung điểm hai đáy làm trục đối xứng.", ans: true, topic: "Đối xứng" },
+            { id: "G2-Q044", q: "Hình chữ nhật chỉ có hai trục đối xứng.", ans: true, topic: "Đối xứng" },
+            { id: "G2-Q045", q: "Hình thoi có hai trục đối xứng là hai đường chéo.", ans: true, topic: "Đối xứng" },
+            { id: "G2-Q046", q: "Hình vuông có đúng 4 trục đối xứng.", ans: true, topic: "Đối xứng" },
+            { id: "G2-Q047", q: "Tam giác đều có 3 trục đối xứng.", ans: true, topic: "Đối xứng" },
+            { id: "G2-Q048", q: "Tam giác cân (không đều) có tâm đối xứng.", ans: false, topic: "Đối xứng" },
+            { id: "G2-Q049", q: "Đường trung bình của tam giác là đoạn thẳng nối trung điểm hai cạnh của tam giác.", ans: true, topic: "Đường trung bình" },
+            { id: "G2-Q050", q: "Đường trung bình của tam giác song song với cạnh thứ ba và bằng nửa cạnh ấy.", ans: true, topic: "Đường trung bình" },
+            { id: "G2-Q051", q: "Khoảng cách giữa hai đường thẳng song song là khoảng cách từ một điểm tùy ý trên đường thẳng này đến đường thẳng kia.", ans: true, topic: "Khoảng cách" },
+            { id: "G2-Q052", q: "Tập hợp các điểm cách đường thẳng d một khoảng bằng h là hai đường thẳng song song với d và cách d một khoảng bằng h.", ans: true, topic: "Khoảng cách" },
+            { id: "G2-Q053", q: "Tứ giác lồi có chính xác 2 đường chéo.", ans: true, topic: "Đa giác" },
+            { id: "G2-Q054", q: "Lục giác lồi có đúng 9 đường chéo.", ans: true, topic: "Đa giác" },
+            { id: "G2-Q055", q: "Tổng số đo các góc trong của một đa giác n cạnh là (n-2)*180 độ.", ans: true, topic: "Đa giác" },
+            { id: "G2-Q056", q: "Đa giác đều là đa giác có tất cả các cạnh bằng nhau và tất cả các góc bằng nhau.", ans: true, topic: "Đa giác" },
+            { id: "G2-Q057", q: "Mọi hình thoi đều là đa giác đều.", ans: false, topic: "Đa giác" },
+            { id: "G2-Q058", q: "Mọi hình chữ nhật đều là đa giác đều.", ans: false, topic: "Đa giác" }
+        ];
+
+        class Game2Manager {
+            constructor() {
+                this.score = 0;
+                this.energy = 1000;
+                this.maxEnergy = 1000;
+                this.currentIndex = 0;
+                this.correctCount = 0;
+                this.wrongCount = 0;
+                this.isProcessingAnswer = false;
+                this.sessionQuestions = [];
+            }
+
+            init() {
+                this.score = 0;
+                this.energy = 1000;
+                this.currentIndex = 0;
+                this.correctCount = 0;
+                this.wrongCount = 0;
+                this.isProcessingAnswer = false;
+                
+                let shuffled = [...GAME2_DATA];
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                }
+                this.sessionQuestions = shuffled.slice(0, 10);
+                
+                document.getElementById('chapter-display').innerText = `GATE 1: QUADRILATERAL SECTOR`;
+                
+                const container = document.getElementById('progress-blocks');
+                container.innerHTML = '';
+                for(let i = 0; i < this.sessionQuestions.length; i++) {
+                    const b = document.createElement('div');
+                    b.className = 'flex-1 bg-gray-800 rounded-sm opacity-40';
+                    b.id = `g2-prog-block-${i}`;
+                    container.appendChild(b);
+                }
+
+                this.updateHUD();
+                
+                setTimeout(() => {
+                    document.getElementById('game2-ui-container').style.opacity = 1;
+                    this.loadQuestion();
+                }, 500);
+            }
+
+            loadQuestion() {
+                if (this.currentIndex >= this.sessionQuestions.length) {
+                    this.finishGame(true);
+                    return;
+                }
+
+                this.isProcessingAnswer = false;
+                const q = this.sessionQuestions[this.currentIndex];
+
+                document.getElementById('game2-question-id').innerText = `DATA ID: #${q.id}`;
+                document.getElementById('game2-question-text').innerText = q.q;
+                // Read the question and both answer choices in English.
+                speakEnglishQuestionAndChoices(q.id, q.q, ['True', 'False']);
+
+                document.getElementById('progress-text').innerText = `${(this.currentIndex + 1).toString().padStart(2, '0')}/${this.sessionQuestions.length}`;
+                
+                const btnTrue = document.getElementById('btn-true');
+                const btnFalse = document.getElementById('btn-false');
+                btnTrue.className = 'btn-option p-6 rounded-xl flex items-center justify-center gap-4 border border-green-500 hover:bg-green-900 hover:bg-opacity-30 transition-all';
+                btnFalse.className = 'btn-option p-6 rounded-xl flex items-center justify-center gap-4 border border-red-500 hover:bg-red-900 hover:bg-opacity-30 transition-all';
+            }
+
+            processAnswer(selectedAnswer) {
+                if (this.isProcessingAnswer) return;
+                this.isProcessingAnswer = true;
+
+                const q = this.sessionQuestions[this.currentIndex];
+                const isCorrect = (selectedAnswer === q.ans);
+
+                const btnTrue = document.getElementById('btn-true');
+                const btnFalse = document.getElementById('btn-false');
+
+                btnTrue.classList.add('disabled');
+                btnFalse.classList.add('disabled');
+
+                if (q.ans === true) btnTrue.classList.add('correct');
+                else btnFalse.classList.add('correct');
+
+                if (!isCorrect) {
+                    if (selectedAnswer === true) btnTrue.classList.add('wrong');
+                    else btnFalse.classList.add('wrong');
+                }
+
+                if (isCorrect) {
+                    this.score += 100;
+                    this.correctCount++;
+                    this.energy = Math.min(this.maxEnergy, this.energy + 50);
+                    AudioSys.correct();
+                    SpaceRenderer.triggerMathCorePulse(true);
+                    if (SpaceRenderer.astronaut) SpaceRenderer.astronaut.setState('CORRECT');
+                    this.showAI("Truth acknowledged!", "success");
+                    this.updateProgressBlock(this.currentIndex, true);
+                } else {
+                    this.wrongCount++;
+                    this.energy = Math.max(0, this.energy - 100);
+                    AudioSys.wrong();
+                    SpaceRenderer.triggerMathCorePulse(false);
+                    document.getElementById('screen-game2').classList.add('shake');
+                    setTimeout(() => document.getElementById('screen-game2').classList.remove('shake'), 500);
+                    if (SpaceRenderer.astronaut) SpaceRenderer.astronaut.setState('WRONG');
+                    this.showAI("False reality detected!", "error");
+                    this.updateProgressBlock(this.currentIndex, false);
+                }
+
+                this.updateHUD();
+
+                if (this.energy <= 0) {
+                    setTimeout(() => this.finishGame(false), 2000);
+                } else {
+                    setTimeout(() => {
+                        this.currentIndex++;
+                        this.loadQuestion();
+                    }, isCorrect ? 1000 : 2000);
+                }
+            }
+
+            updateProgressBlock(index, isCorrect) {
+                const b = document.getElementById(`g2-prog-block-${index}`);
+                if(b) b.className = `flex-1 rounded-sm opacity-100 ${isCorrect ? 'bg-green-400 shadow-[0_0_5px_#00ff64]' : 'bg-red-500 shadow-[0_0_5px_#ff0000]'}`;
+            }
+
+            updateHUD() {
+                document.getElementById('score-display').innerText = this.score;
+                const energyPct = Math.max(0, Math.min(100, (this.energy / this.maxEnergy) * 100));
+                document.getElementById('energy-bar').style.width = `${energyPct}%`;
+                document.getElementById('energy-text').innerText = `${Math.floor(energyPct)}%`;
+                
+                if(energyPct < 30) {
+                    document.getElementById('energy-bar').className = "bg-red-500 h-full w-full transition-all shadow-[0_0_10px_#ff0000] animate-pulse";
+                } else {
+                    document.getElementById('energy-bar').className = "bg-gradient-to-r from-purple-500 to-pink-500 h-full w-full transition-all shadow-[0_0_10px_#bc13fe]";
+                }
+            }
+
+            showAI(msg, type) {
+                const el = document.getElementById('ai-message2');
+                el.innerText = `AI: ${msg}`;
+                let color = type === 'success' ? 'border-green-400 text-green-300 shadow-[0_0_20px_rgba(0,255,100,0.5)]' : 
+                            type === 'error' ? 'border-red-400 text-red-300 shadow-[0_0_20px_rgba(255,50,50,0.5)]' : 
+                            'border-purple-400 text-purple-300 shadow-[0_0_20px_rgba(188,19,254,0.5)]';
+                
+                el.className = `absolute top-[12%] md:top-[18%] left-1/2 transform -translate-x-1/2 bg-purple-900 bg-opacity-90 border-2 px-6 py-3 rounded-full font-scifi text-sm tracking-wide z-50 text-center w-max max-w-[90%] transition-opacity duration-300 ${color}`;
+                el.style.opacity = 1;
+                setTimeout(() => el.style.opacity = 0, 2500);
+            }
+
+            finishGame(completed = true) {
+                document.getElementById('hud').classList.remove('active');
+                
+                const maxScore = this.sessionQuestions.length * 100;
+                let powerPercent = (this.score / maxScore) * 100;
+                
+                let rank = "", stars = "";
+                if(powerPercent >= 95) { rank = "REALITY OVERLORD"; stars = "⭐⭐⭐⭐⭐"; }
+                else if(powerPercent >= 85) { rank = "TRUTH WEAVER"; stars = "⭐⭐⭐⭐"; }
+                else if(powerPercent >= 70) { rank = "REALITY SHAPER"; stars = "⭐⭐⭐"; }
+                else if(powerPercent >= 50) { rank = "LOGIC SEEKER"; stars = "⭐⭐"; }
+                else { rank = "DIMENSION INITIATE"; stars = "⭐"; }
+
+                globalGameState.game2 = {
+                    completed: true, score: this.score, maxScore: maxScore,
+                    powerPercent: powerPercent, rank: rank, unlockedNextBattle: true
+                };
+
+                if (completed) {
+                    submitDataToGoogleForm(
+                        "GAME 2: TRUTH DIMENSION",
+                        playerName || "",
+                        powerPercent ?? 0,
+                        rank || ""
+                    ).catch(error => console.error("Google Form Error:", error));
+                }
+
+                switchScreen('screen-result2');
+                document.getElementById('result2-player-name').innerText = playerName.toUpperCase();
+                document.getElementById('result2-score').innerText = this.score;
+                document.getElementById('result2-correct').innerText = `${this.correctCount} / ${this.sessionQuestions.length}`;
+                document.getElementById('result2-power').innerText = `${powerPercent.toFixed(1)}%`;
+                document.getElementById('result2-stars').innerText = stars;
+                document.getElementById('result2-rank').innerText = rank;
+            }
+        }
+
+        const game2 = new Game2Manager();
+
+        // 4.2 GAME MANAGER 3 (NUMERICAL MATRIX)
+        const GAME3_DATA = [
+            // Original 10 Game 3 questions — preserved unchanged.
+            { id: "G3-Q001", q: "Tính tổng các góc trong một ngũ giác lồi (đơn vị: độ).", ans: 540 },
+            { id: "G3-Q002", q: "Số đường chéo của một lục giác lồi là bao nhiêu?", ans: 9 },
+            { id: "G3-Q003", q: "Một hình chữ nhật có chiều dài 8cm, chiều rộng 6cm. Độ dài đường chéo là bao nhiêu cm?", ans: 10 },
+            { id: "G3-Q004", q: "Cho hình bình hành ABCD có góc A = 70 độ. Số đo góc B là bao nhiêu độ?", ans: 110 },
+            { id: "G3-Q005", q: "Hình thoi có độ dài hai đường chéo lần lượt là 6cm và 8cm. Cạnh hình thoi bằng bao nhiêu cm?", ans: 5 },
+            { id: "G3-Q006", q: "Đường trung bình của tam giác có độ dài bằng 7cm. Độ dài cạnh đáy tương ứng là bao nhiêu cm?", ans: 14 },
+            { id: "G3-Q007", q: "Cho hình thang cân có đáy nhỏ 4cm, đáy lớn 10cm. Độ dài đường trung bình là bao nhiêu cm?", ans: 7 },
+            { id: "G3-Q008", q: "Hình vuông có chu vi 36cm. Diện tích hình vuông đó bằng bao nhiêu cm²?", ans: 81 },
+            { id: "G3-Q009", q: "Một đa giác đều có mỗi góc trong bằng 120 độ. Đa giác đó có bao nhiêu cạnh?", ans: 6 },
+            { id: "G3-Q010", q: "Hình thoi có chu vi 40cm và một đường chéo dài 12cm. Độ dài đường chéo còn lại là bao nhiêu cm?", ans: 16 },
+
+            // 25 short-answer questions based on the uploaded Grade 8 worksheet.
+            // For multi-part answers, enter numbers in the stated order, separated by semicolons.
+            { id: "G3-Q011", q: "Câu 1. Tam giác ABC vuông tại A, BC = 18 cm. M là trung điểm BC. Tính AM.\nNhập một số: độ dài AM (cm).", ans: 9 },
+            { id: "G3-Q012", q: "Câu 2. Tam giác MNP vuông tại M, cạnh huyền NP = 24 cm. I là trung điểm NP. Tính MI.\nNhập một số: độ dài MI (cm).", ans: 12 },
+            { id: "G3-Q013", q: "Câu 3. Tam giác DEF vuông tại D, EF = 13 cm. K là trung điểm cạnh huyền EF. Tính DK.\nNhập một số: độ dài DK (cm).", ans: 6.5 },
+            { id: "G3-Q014", q: "Câu 4. Một tam giác vuông có cạnh huyền dài 7,6 cm. Tính đường trung tuyến ứng với cạnh huyền.\nNhập một số: độ dài đường trung tuyến (cm).", ans: 3.8 },
+            { id: "G3-Q015", q: "Câu 5. Tam giác ABC vuông tại A, đường trung tuyến AM ứng với cạnh huyền BC dài 6 cm. Tính BC.\nNhập một số: độ dài BC (cm).", ans: 12 },
+            { id: "G3-Q016", q: "Câu 6. Tam giác DEF vuông tại D, K là trung điểm cạnh huyền EF. Biết DK = 8,5 cm. Tính EF.\nNhập một số: độ dài EF (cm).", ans: 17 },
+            { id: "G3-Q017", q: "Câu 7. Một tam giác vuông có đường trung tuyến ứng với cạnh huyền dài 4,2 cm. Tính cạnh huyền.\nNhập một số: độ dài cạnh huyền (cm).", ans: 8.4 },
+            { id: "G3-Q018", q: "Câu 8. Tam giác MNP vuông tại M, I là trung điểm cạnh huyền NP. Biết MI = 11 cm. Tính NP.\nNhập một số: độ dài NP (cm).", ans: 22 },
+            { id: "G3-Q019", q: "Câu 9. Tứ giác ABCD có góc A = 80°, góc B = 95°, góc C = 105°. Tính góc D.\nNhập một số: số đo góc D (độ).", ans: 80 },
+            { id: "G3-Q020", q: "Câu 10. Tứ giác MNPQ có góc M = 120°, góc N = 60°, góc P = 110°. Tính góc Q.\nNhập một số: số đo góc Q (độ).", ans: 70 },
+            { id: "G3-Q021", q: "Câu 11. Ba góc của một tứ giác lần lượt là 75°, 85° và 120°. Tính góc còn lại.\nNhập một số: số đo góc còn lại (độ).", ans: 80 },
+            { id: "G3-Q022", q: "Câu 12. Tứ giác ABCD có góc A = 90°, góc B = 110° và góc C = 3 lần góc D. Tính góc C và góc D.\nNhập theo thứ tự: góc C; góc D. Dùng dấu chấm phẩy (;).", ans: [120, 40], answerDisplay: "120; 40 (góc C; góc D)" },
+            { id: "G3-Q023", q: "Câu 13. Hình bình hành ABCD có góc A = 65°. Tính các góc B, C, D.\nNhập theo thứ tự: góc B; góc C; góc D. Dùng dấu chấm phẩy (;).", ans: [115, 65, 115], answerDisplay: "115; 65; 115 (góc B; góc C; góc D)" },
+            { id: "G3-Q024", q: "Câu 14. Hình bình hành MNPQ có góc M = 3 lần góc N. Tính góc M và góc N.\nNhập theo thứ tự: góc M; góc N. Dùng dấu chấm phẩy (;).", ans: [135, 45], answerDisplay: "135; 45 (góc M; góc N)" },
+            { id: "G3-Q025", q: "Câu 15. Hình bình hành ABCD có góc A = (2x + 10)° và góc B = (3x − 20)°. Tìm x và các góc.\nNhập theo thứ tự: x; góc A (cũng là góc C); góc B (cũng là góc D). Dùng dấu chấm phẩy (;).", ans: [38, 86, 94], answerDisplay: "38; 86; 94 (x; góc A và C; góc B và D)" },
+            { id: "G3-Q026", q: "Câu 16. Hình vuông ABCD có cạnh dài 8 cm. Tính chu vi và diện tích.\nNhập theo thứ tự: chu vi (cm); diện tích (cm²). Dùng dấu chấm phẩy (;).", ans: [32, 64], answerDisplay: "32; 64 (chu vi; diện tích)" },
+            { id: "G3-Q027", q: "Câu 17. Hình vuông MNPQ có đường chéo MP = 10 cm. Tính đường chéo NQ.\nNhập một số: độ dài NQ (cm).", ans: 10 },
+            { id: "G3-Q028", q: "Câu 18. Hình vuông ABCD có hai đường chéo AC và BD cắt nhau tại O. Biết AC = 12 cm. Tính AO, BO và BD.\nNhập theo thứ tự: AO; BO; BD (cm). Dùng dấu chấm phẩy (;).", ans: [6, 6, 12], answerDisplay: "6; 6; 12 (AO; BO; BD)" },
+            { id: "G3-Q029", q: "Câu 19. Hình thoi ABCD có cạnh dài 7 cm. Tính chu vi.\nNhập một số: chu vi (cm).", ans: 28 },
+            { id: "G3-Q030", q: "Câu 20. Hình thoi ABCD có hai đường chéo AC = 16 cm và BD = 12 cm. Tính diện tích.\nNhập một số: diện tích (cm²).", ans: 96 },
+            { id: "G3-Q031", q: "Câu 21. Hình thoi MNPQ có hai đường chéo cắt nhau tại O. Biết MO = 5 cm và NO = 12 cm. Tính cạnh MN.\nNhập một số: độ dài MN (cm).", ans: 13 },
+            { id: "G3-Q032", q: "Câu 22. Hình chữ nhật ABCD có chiều dài 12 cm và chiều rộng 5 cm. Tính chu vi và diện tích.\nNhập theo thứ tự: chu vi (cm); diện tích (cm²). Dùng dấu chấm phẩy (;).", ans: [34, 60], answerDisplay: "34; 60 (chu vi; diện tích)" },
+            { id: "G3-Q033", q: "Câu 23. Hình chữ nhật MNPQ có MN = 15 cm và NP = 8 cm. Tính đường chéo MP.\nNhập một số: độ dài MP (cm).", ans: 17 },
+            { id: "G3-Q034", q: "Câu 24. Hình chữ nhật ABCD có hai đường chéo AC và BD cắt nhau tại O. Biết AC = 14 cm. Tính AO, BO và BD.\nNhập theo thứ tự: AO; BO; BD (cm). Dùng dấu chấm phẩy (;).", ans: [7, 7, 14], answerDisplay: "7; 7; 14 (AO; BO; BD)" },
+            { id: "G3-Q035", q: "Câu 25. Hình chữ nhật ABCD có chu vi 36 cm, chiều dài hơn chiều rộng 4 cm. Tính chiều dài, chiều rộng và diện tích.\nNhập theo thứ tự: chiều dài (cm); chiều rộng (cm); diện tích (cm²). Dùng dấu chấm phẩy (;).", ans: [11, 7, 77], answerDisplay: "11; 7; 77 (chiều dài; chiều rộng; diện tích)" }
+        ];
+
+        class Game3Manager {
+            constructor() {
+                this.score = 0;
+                this.energy = 1000;
+                this.maxEnergy = 1000;
+                this.currentIndex = 0;
+                this.correctCount = 0;
+                this.isProcessingAnswer = false;
+                this.sessionQuestions = [];
+            }
+
+            init() {
+                this.score = 0;
+                this.energy = 1000;
+                this.currentIndex = 0;
+                this.correctCount = 0;
+                this.isProcessingAnswer = false;
+                // Each run draws 10 unique questions from the full 35-question bank.
+                this.sessionQuestions = [...GAME3_DATA];
+                for (let i = this.sessionQuestions.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [this.sessionQuestions[i], this.sessionQuestions[j]] = [this.sessionQuestions[j], this.sessionQuestions[i]];
+                }
+                this.sessionQuestions = this.sessionQuestions.slice(0, 10);
+
+                document.getElementById('chapter-display').innerText = `GAME 3: NUMERICAL MATRIX`;
+                
+                const container = document.getElementById('progress-blocks');
+                container.innerHTML = '';
+                for(let i = 0; i < this.sessionQuestions.length; i++) {
+                    const b = document.createElement('div');
+                    b.className = 'flex-1 bg-gray-800 rounded-sm opacity-40';
+                    b.id = `g3-prog-block-${i}`;
+                    container.appendChild(b);
+                }
+
+                this.updateHUD();
+
+                setTimeout(() => {
+                    document.getElementById('game3-ui-container').style.opacity = 1;
+                    this.loadQuestion();
+                }, 500);
+            }
+
+            loadQuestion() {
+                if (this.currentIndex >= this.sessionQuestions.length) {
+                    this.finishGame(true);
+                    return;
+                }
+
+                this.isProcessingAnswer = false;
+                const q = this.sessionQuestions[this.currentIndex];
+
+                document.getElementById('game3-question-id').innerText = `DATA ID: #${q.id}`;
+                document.getElementById('game3-question-text').innerText = q.q;
+                EnglishQuestionVoice.speak(q.id);
+                
+                const inputEl = document.getElementById('game3-answer-input');
+                inputEl.value = '';
+                inputEl.focus();
+
+                document.getElementById('progress-text').innerText = `${(this.currentIndex + 1).toString().padStart(2, '0')}/${this.sessionQuestions.length}`;
+            }
+
+            submitAnswer() {
+                if (this.isProcessingAnswer) return;
+
+                const inputEl = document.getElementById('game3-answer-input');
+                const val = inputEl.value.trim();
+                if (val === '') {
+                    this.showAI("Vui lòng nhập đáp án theo định dạng ghi trong câu hỏi!", "error");
+                    return;
+                }
+
+                this.isProcessingAnswer = true;
+                const q = this.sessionQuestions[this.currentIndex];
+                // Accept one numeric answer or several ordered numeric answers separated by semicolons.
+                // Labels such as "x=38; A=86; B=94" are also accepted because only numeric values are compared.
+                const submittedNumbers = (val.match(/-?\d+(?:[.,]\d+)?/g) || [])
+                    .map(n => Number(n.replace(',', '.')));
+                const expectedNumbers = Array.isArray(q.ans) ? q.ans : [q.ans];
+                const isCorrect = submittedNumbers.length === expectedNumbers.length &&
+                    submittedNumbers.every((n, i) => Number.isFinite(n) && Math.abs(n - expectedNumbers[i]) < 1e-9);
+
+                if (isCorrect) {
+                    this.score += 100;
+                    this.correctCount++;
+                    this.energy = Math.min(this.maxEnergy, this.energy + 100);
+                    AudioSys.correct();
+                    SpaceRenderer.triggerMathCorePulse(true);
+                    if (SpaceRenderer.astronaut) SpaceRenderer.astronaut.setState('CORRECT');
+                    this.showAI("Phá giải ma trận thành công!", "success");
+                    this.updateProgressBlock(this.currentIndex, true);
+                } else {
+                    this.energy = Math.max(0, this.energy - 100);
+                    AudioSys.wrong();
+                    SpaceRenderer.triggerMathCorePulse(false);
+                    document.getElementById('screen-game3').classList.add('shake');
+                    setTimeout(() => document.getElementById('screen-game3').classList.remove('shake'), 500);
+                    if (SpaceRenderer.astronaut) SpaceRenderer.astronaut.setState('WRONG');
+                    this.showAI(`Tính toán sai! Đáp án đúng là: ${q.answerDisplay || (Array.isArray(q.ans) ? q.ans.join("; ") : q.ans)}`, "error");
+                    this.updateProgressBlock(this.currentIndex, false);
+                }
+
+                this.updateHUD();
+
+                if (this.energy <= 0) {
+                    setTimeout(() => this.finishGame(false), 2000);
+                } else {
+                    setTimeout(() => {
+                        this.currentIndex++;
+                        this.loadQuestion();
+                    }, isCorrect ? 1000 : 2500);
+                }
+            }
+
+            updateProgressBlock(index, isCorrect) {
+                const b = document.getElementById(`g3-prog-block-${index}`);
+                if(b) b.className = `flex-1 rounded-sm opacity-100 ${isCorrect ? 'bg-yellow-400 shadow-[0_0_5px_#facc15]' : 'bg-red-500 shadow-[0_0_5px_#ff0000]'}`;
+            }
+
+            updateHUD() {
+                document.getElementById('score-display').innerText = this.score;
+                const energyPct = Math.max(0, Math.min(100, (this.energy / this.maxEnergy) * 100));
+                document.getElementById('energy-bar').style.width = `${energyPct}%`;
+                document.getElementById('energy-text').innerText = `${Math.floor(energyPct)}%`;
+            }
+
+            showAI(msg, type) {
+                const el = document.getElementById('ai-message3');
+                el.innerText = `AI: ${msg}`;
+                let color = type === 'success' ? 'border-green-400 text-green-300 shadow-[0_0_20px_rgba(0,255,100,0.5)]' : 
+                            type === 'error' ? 'border-red-400 text-red-300 shadow-[0_0_20px_rgba(255,50,50,0.5)]' : 
+                            'border-yellow-400 text-yellow-300 shadow-[0_0_20px_rgba(250,204,21,0.5)]';
+                
+                el.className = `absolute top-[12%] md:top-[18%] left-1/2 transform -translate-x-1/2 bg-amber-900 bg-opacity-90 border-2 px-6 py-3 rounded-full font-scifi text-sm tracking-wide z-50 text-center w-max max-w-[90%] transition-opacity duration-300 ${color}`;
+                el.style.opacity = 1;
+                setTimeout(() => el.style.opacity = 0, 2500);
+            }
+
+            finishGame(completed = true) {
+                document.getElementById('hud').classList.remove('active');
+                
+                const maxScore = this.sessionQuestions.length * 100;
+                let powerPercent = (this.score / maxScore) * 100;
+                
+                let rank = "", stars = "";
+                if(powerPercent >= 90) { rank = "MATRIX OVERLORD"; stars = "⭐⭐⭐⭐⭐"; }
+                else if(powerPercent >= 80) { rank = "NUMERICAL MASTER"; stars = "⭐⭐⭐⭐"; }
+                else if(powerPercent >= 70) { rank = "CIPHER SOLVER"; stars = "⭐⭐⭐"; }
+                else { rank = "CALCULATOR INITIATE"; stars = "⭐⭐"; }
+
+                globalGameState.game3 = {
+                    completed: true, score: this.score, maxScore: maxScore,
+                    powerPercent: powerPercent, rank: rank, unlockedNextBattle: true
+                };
+
+                if (completed) {
+                    submitDataToGoogleForm(
+                        "GAME 3: NUMERICAL MATRIX",
+                        playerName || "",
+                        powerPercent ?? 0,
+                        rank || ""
+                    ).catch(error => console.error("Google Form Error:", error));
+                }
+
+                switchScreen('screen-result3');
+                document.getElementById('result3-player-name').innerText = playerName.toUpperCase();
+                document.getElementById('result3-score').innerText = this.score;
+                document.getElementById('result3-correct').innerText = `${this.correctCount} / ${this.sessionQuestions.length}`;
+                document.getElementById('result3-power').innerText = `${powerPercent.toFixed(1)}%`;
+                document.getElementById('result3-stars').innerText = stars;
+                document.getElementById('result3-rank').innerText = rank;
+            }
+        }
+
+        const game3 = new Game3Manager();
+
+        // CINEMATIC VOICEOVER
+        function speakCinematic(lines, rate = 0.65, pitch = 0.9) {
+            if (!('speechSynthesis' in window)) return;
+            try {
+                speechSynthesis.cancel();
+                let delay = 0;
+                lines.forEach(line => {
+                    setTimeout(() => {
+                        const u = new SpeechSynthesisUtterance(line);
+                        u.lang = 'en-US';
+                        u.rate = 0.65;
+                        u.pitch = pitch;
+                        u.volume = 1;
+                        speechSynthesis.speak(u);
+                    }, delay);
+                    delay += Math.max(1500, line.length * 62);
+                });
+            } catch(e) {}
+        }
+
+        function playGame2Cinematic() {
+            AudioSys.init();
+            AudioSys.battleTransition();
+            speakCinematic([
+                "Your Math Power has reached the required threshold.",
+                "The Knowledge Gate is now behind you.",
+                "Before you lies the Truth Dimension.",
+                "Explorer, prepare for battle!"
+            ]);
+        }
+
+        function playGame3Cinematic() {
+            AudioSys.init();
+            AudioSys.finalBattleTransition();
+            speakCinematic([
+                "You have conquered the Truth Dimension.",
+                "But the battle is not over yet.",
+                "Before you lies the Numerical Matrix.",
+                "Ten final challenges await you.",
+                "Math warrior, prove your strength!"
+            ]);
+        }
+
+
+        // Exact English translations for every Game 1 answer choice.
+        // These strings are spoken only; the visible choices remain Vietnamese.
+        const EnglishChoiceVoice = {
+            map: {
+                "G1-1": ["the four line segments AB, BC, CD, and DA, with no two of them lying on the same line.", "three line segments connecting three non-collinear points.", "four arbitrary line segments connecting four points.", "four line segments in which two segments always lie on the same line."],
+                "G1-2": ["the two vertices belonging to any side always lie on the same side of the line containing that side.", "the two diagonals are always perpendicular to each other.", "all four angles are equal.", "the two opposite sides are always equal."],
+                "G1-3": ["two opposite vertices.", "two adjacent vertices.", "two consecutive vertices.", "two dependent vertices."],
+                "G1-4": ["one hundred eighty degrees.", "two hundred seventy degrees.", "three hundred sixty degrees.", "seven hundred twenty degrees."],
+                "G1-5": ["two opposite sides are parallel.", "two adjacent sides are equal.", "the two diagonals are equal.", "all four angles are equal."],
+                "G1-6": ["the two angles adjacent to a base are equal.", "the two legs are perpendicular to each other.", "the two diagonals are perpendicular to each other.", "the two bases are equal."],
+                "G1-7": ["equal.", "parallel to each other.", "perpendicular to each other.", "always equal to the two bases."],
+                "G1-8": ["equal.", "perpendicular to each other.", "bisect each other at their midpoints.", "are angle bisectors of the angles."],
+                "G1-9": ["an isosceles trapezoid.", "always a parallelogram.", "always a rectangle.", "always a square."],
+                "G1-24": ["the two angles adjacent to a base are equal.", "the two legs are equal.", "the two diagonals are equal.", "the two bases are always equal.", "the two diagonals are always perpendicular to each other."],
+                "G1-10": ["the opposite sides are parallel.", "four equal sides.", "four right angles.", "the two diagonals are perpendicular to each other."],
+                "G1-11": ["equal.", "always perpendicular.", "no relationship.", "always equal to a diagonal."],
+                "G1-12": ["equal.", "supplementary.", "always equal to ninety degrees.", "always different."],
+                "G1-13": ["bisect each other at the midpoint of each diagonal.", "equal.", "perpendicular to each other.", "are angle bisectors of all the angles."],
+                "G1-14": ["A quadrilateral with equal opposite sides.", "A quadrilateral with two adjacent equal sides.", "A quadrilateral with one right angle.", "A quadrilateral with two equal diagonals."],
+                "G1-15": ["is a parallelogram.", "an isosceles trapezoid.", "is a rectangle.", "is a square."],
+                "G1-16": ["is a parallelogram.", "is certainly a rhombus.", "is certainly a square.", "is certainly a rectangle."],
+                "G1-17": ["a parallelogram.", "an isosceles trapezoid.", "a rectangle.", "a rhombus."],
+                "G1-23": ["the opposite sides are equal.", "the opposite angles are equal.", "the two diagonals bisect each other at their midpoints.", "the two diagonals are always equal.", "the two diagonals are always perpendicular to each other."],
+                "G1-25": ["A quadrilateral with equal opposite sides.", "A quadrilateral with one pair of opposite sides that are parallel and equal.", "A quadrilateral with equal opposite angles.", "A quadrilateral whose two diagonals bisect each other at their midpoints.", "A quadrilateral with two equal diagonals."],
+                "G1-18": ["a quadrilateral with four right angles.", "a quadrilateral with four equal sides.", "a trapezoid with two equal diagonals.", "a quadrilateral with perpendicular diagonals."],
+                "G1-19": ["equal and bisect each other at their midpoints.", "perpendicular to each other and equal.", "are angle bisectors of the angles.", "no special relationship."],
+                "G1-20": ["is a rectangle.", "is a rhombus.", "an isosceles trapezoid.", "is a square."],
+                "G1-21": ["is a rectangle.", "is a rhombus.", "is a square.", "an isosceles trapezoid."],
+                "G1-26": ["A rectangle is a quadrilateral with four right angles.", "the two diagonals are equal.", "the two diagonals bisect each other at their midpoints.", "the two diagonals are always perpendicular to each other.", "A rectangle does not have the properties of a parallelogram."],
+                "G1-27": ["A parallelogram with one right angle.", "A parallelogram with two equal diagonals.", "A quadrilateral with two equal diagonals that bisect each other at their midpoints.", "A parallelogram with four equal sides.", "A trapezoid with two equal legs."],
+                "G1-22": ["a quadrilateral with four equal sides.", "a quadrilateral with four right angles.", "a parallelogram with two equal diagonals.", "a trapezoid with two equal legs."],
+                "G1-28": ["A rhombus with four equal sides.", "The two diagonals are perpendicular to each other.", "The two diagonals are angle bisectors of the angles in the rhombus.", "A rhombus always has four right angles.", "A rhombus is not a parallelogram."],
+                "G1-29": ["A parallelogram with two adjacent equal sides.", "A parallelogram with two perpendicular diagonals.", "A parallelogram with one diagonal that bisects an angle.", "A parallelogram with two equal diagonals.", "A parallelogram with one right angle."],
+                "G1-30": ["A square has four right angles and four equal sides.", "the two diagonals are equal.", "The two diagonals are perpendicular to each other.", "The two diagonals bisect each other at their midpoints and are angle bisectors of the angles.", "A square does not have the properties of a rectangle and a rhombus."],
+                "G2-TRUE-FALSE": ["True.", "False."]
+            }
+        };
+
+        // ENGLISH QUESTION VOICEOVER
+        // The question shown on screen remains Vietnamese. Only the spoken narration is English.
+        const EnglishQuestionVoice = {
+            enabled: true,
+            map: {
+    "G1-1": "What does quadrilateral ABCD consist of?",
+    "G1-2": "What is the defining condition of a convex quadrilateral?",
+    "G1-3": "In a quadrilateral, what are two vertices that do not belong to the same side called?",
+    "G1-4": "What is the sum of the measures of the angles of a quadrilateral?",
+    "G1-5": "What is a trapezoid?",
+    "G1-6": "What is an isosceles trapezoid?",
+    "G1-7": "In an isosceles trapezoid, what is the relationship between the two legs?",
+    "G1-8": "In an isosceles trapezoid, what is the relationship between the two diagonals?",
+    "G1-9": "If a trapezoid has two equal diagonals, what kind of trapezoid is it?",
+    "G1-24": "Which statements about an isosceles trapezoid are correct? Select all correct answers.",
+    "G1-10": "What is a parallelogram?",
+    "G1-11": "In a parallelogram, what is the relationship between opposite sides?",
+    "G1-12": "In a parallelogram, what is the relationship between opposite angles?",
+    "G1-13": "What is the property of the two diagonals of a parallelogram?",
+    "G1-14": "Which condition can be used to recognize a quadrilateral as a parallelogram?",
+    "G1-15": "If a quadrilateral has one pair of opposite sides that are both parallel and equal, what is it?",
+    "G1-16": "If a quadrilateral has equal opposite angles, what is it?",
+    "G1-17": "If the two diagonals of a quadrilateral bisect each other, what is the quadrilateral?",
+    "G1-23": "Which statements about a parallelogram are correct? Select all correct answers.",
+    "G1-25": "Which conditions are recognition criteria for a parallelogram? Select all correct answers.",
+    "G1-18": "What is a rectangle?",
+    "G1-19": "What is the property of the two diagonals of a rectangle?",
+    "G1-20": "A parallelogram with one right angle is what?",
+    "G1-21": "A parallelogram with two equal diagonals is what?",
+    "G1-26": "Which statements about a rectangle are correct? Select all correct answers.",
+    "G1-27": "Which conditions can be used to recognize a rectangle? Select all correct answers.",
+    "G1-22": "What is a rhombus?",
+    "G1-28": "Which statements about a rhombus are correct? Select all correct answers.",
+    "G1-29": "Which conditions are recognition criteria for a rhombus? Select all correct answers.",
+    "G1-30": "Which statements about a square are correct? Select all correct answers.",
+    "G2-Q001": "A quadrilateral has four sides.",
+    "G2-Q002": "The sum of the angles of a quadrilateral is one hundred and eighty degrees.",
+    "G2-Q003": "A convex quadrilateral always lies in one half-plane whose boundary is the line containing any side of the quadrilateral.",
+    "G2-Q004": "A quadrilateral whose two diagonals bisect each other is always a rectangle.",
+    "G2-Q005": "The sum of the exterior angles of a convex quadrilateral is three hundred and sixty degrees.",
+    "G2-Q006": "A trapezoid is a quadrilateral with two opposite sides parallel.",
+    "G2-Q007": "A right trapezoid is a trapezoid with one right angle.",
+    "G2-Q008": "A trapezoid with two equal legs is always an isosceles trapezoid.",
+    "G2-Q009": "An isosceles trapezoid has two equal angles adjacent to each base.",
+    "G2-Q010": "In an isosceles trapezoid, the two diagonals are equal.",
+    "G2-Q011": "A trapezoid with two equal diagonals is an isosceles trapezoid.",
+    "G2-Q012": "The midline of a trapezoid is parallel to the two bases and equals half their sum.",
+    "G2-Q013": "The segment joining the midpoints of the diagonals of a trapezoid is always parallel to the two bases.",
+    "G2-Q014": "A parallelogram is a quadrilateral with opposite sides parallel.",
+    "G2-Q015": "In a parallelogram, opposite angles are supplementary.",
+    "G2-Q016": "In a parallelogram, the two diagonals bisect each other.",
+    "G2-Q017": "A quadrilateral with two equal opposite sides is a parallelogram.",
+    "G2-Q018": "A quadrilateral with one pair of opposite sides that are both parallel and equal is a parallelogram.",
+    "G2-Q019": "A quadrilateral with equal opposite angles is a parallelogram.",
+    "G2-Q020": "A rectangle is a quadrilateral with four right angles.",
+    "G2-Q021": "A rectangle is a special type of parallelogram.",
+    "G2-Q022": "A rectangle is also an isosceles trapezoid.",
+    "G2-Q023": "In a rectangle, the two diagonals are equal and bisect each other.",
+    "G2-Q024": "A parallelogram with two equal diagonals is a rectangle.",
+    "G2-Q025": "An isosceles trapezoid with one right angle is a rectangle.",
+    "G2-Q026": "A rhombus is a quadrilateral with four equal sides.",
+    "G2-Q027": "A rhombus is not a parallelogram.",
+    "G2-Q028": "In a rhombus, the two diagonals are perpendicular.",
+    "G2-Q029": "In a rhombus, the two diagonals bisect the angles of the rhombus.",
+    "G2-Q030": "A parallelogram with two adjacent equal sides is a rhombus.",
+    "G2-Q031": "A parallelogram with perpendicular diagonals is a rhombus.",
+    "G2-Q032": "A parallelogram with one diagonal that bisects an angle is a rhombus.",
+    "G2-Q033": "A square is a quadrilateral with four right angles and four equal sides.",
+    "G2-Q034": "A square is both a rectangle and a rhombus.",
+    "G2-Q035": "A rectangle with two adjacent equal sides is a square.",
+    "G2-Q036": "A rectangle with perpendicular diagonals is a square.",
+    "G2-Q037": "A rectangle with one diagonal that bisects an angle is a square.",
+    "G2-Q038": "A rhombus with one right angle is a square.",
+    "G2-Q039": "A rhombus with equal diagonals is a square.",
+    "G2-Q040": "Two points are symmetric about point O if O is the midpoint of the segment joining them.",
+    "G2-Q041": "A parallelogram has its diagonal intersection as a center of symmetry.",
+    "G2-Q042": "Two points are symmetric about line d if d is the perpendicular bisector of the segment joining them.",
+    "G2-Q043": "An isosceles trapezoid has the line through the midpoints of its two bases as an axis of symmetry.",
+    "G2-Q044": "A rectangle has only two axes of symmetry.",
+    "G2-Q045": "A rhombus has two axes of symmetry, namely its diagonals.",
+    "G2-Q046": "A square has exactly four axes of symmetry.",
+    "G2-Q047": "An equilateral triangle has three axes of symmetry.",
+    "G2-Q048": "A non-equilateral isosceles triangle has a center of symmetry.",
+    "G2-Q049": "The midline of a triangle is the segment joining the midpoints of two sides of the triangle.",
+    "G2-Q050": "The midline of a triangle is parallel to the third side and equals half its length.",
+    "G2-Q051": "The distance between two parallel lines is the distance from any point on one line to the other line.",
+    "G2-Q052": "The set of points at a distance h from line d consists of two lines parallel to d, each at distance h from d.",
+    "G2-Q053": "A convex quadrilateral has exactly two diagonals.",
+    "G2-Q054": "A convex hexagon has exactly nine diagonals.",
+    "G2-Q055": "The sum of the interior angles of an n-sided polygon is n minus two, multiplied by one hundred and eighty degrees.",
+    "G2-Q056": "A regular polygon has all sides equal and all angles equal.",
+    "G2-Q057": "Every rhombus is a regular polygon.",
+    "G2-Q058": "Every rectangle is a regular polygon.",
+    "G3-Q011": "Question one. Triangle A B C is right-angled at A, and B C is eighteen centimeters. M is the midpoint of B C. Find A M. Enter one number, the length of A M in centimeters.",
+    "G3-Q012": "Question two. Triangle M N P is right-angled at M, and hypotenuse N P is twenty-four centimeters. I is the midpoint of N P. Find M I. Enter one number, the length of M I in centimeters.",
+    "G3-Q013": "Question three. Triangle D E F is right-angled at D, and E F is thirteen centimeters. K is the midpoint of hypotenuse E F. Find D K. Enter one number, the length of D K in centimeters.",
+    "G3-Q014": "Question four. A right triangle has a hypotenuse of seven point six centimeters. Find the median to the hypotenuse. Enter one number in centimeters.",
+    "G3-Q015": "Question five. Triangle A B C is right-angled at A. The median A M to hypotenuse B C is six centimeters long. Find B C. Enter one number in centimeters.",
+    "G3-Q016": "Question six. Triangle D E F is right-angled at D, and K is the midpoint of hypotenuse E F. D K is eight point five centimeters. Find E F. Enter one number in centimeters.",
+    "G3-Q017": "Question seven. In a right triangle, the median to the hypotenuse is four point two centimeters long. Find the hypotenuse. Enter one number in centimeters.",
+    "G3-Q018": "Question eight. Triangle M N P is right-angled at M, and I is the midpoint of hypotenuse N P. M I is eleven centimeters. Find N P. Enter one number in centimeters.",
+    "G3-Q019": "Question nine. Quadrilateral A B C D has angle A equal to eighty degrees, angle B equal to ninety-five degrees, and angle C equal to one hundred five degrees. Find angle D. Enter one number in degrees.",
+    "G3-Q020": "Question ten. Quadrilateral M N P Q has angle M equal to one hundred twenty degrees, angle N equal to sixty degrees, and angle P equal to one hundred ten degrees. Find angle Q. Enter one number in degrees.",
+    "G3-Q021": "Question eleven. Three angles of a quadrilateral measure seventy-five degrees, eighty-five degrees, and one hundred twenty degrees. Find the fourth angle. Enter one number in degrees.",
+    "G3-Q022": "Question twelve. Quadrilateral A B C D has angle A equal to ninety degrees, angle B equal to one hundred ten degrees, and angle C is three times angle D. Find angle C and angle D. Enter angle C first, then angle D, separated by a semicolon.",
+    "G3-Q023": "Question thirteen. In parallelogram A B C D, angle A is sixty-five degrees. Find angles B, C, and D. Enter angle B, then angle C, then angle D, separated by semicolons.",
+    "G3-Q024": "Question fourteen. In parallelogram M N P Q, angle M is three times angle N. Find angles M and N. Enter angle M first, then angle N, separated by a semicolon.",
+    "G3-Q025": "Question fifteen. In parallelogram A B C D, angle A equals two x plus ten degrees, and angle B equals three x minus twenty degrees. Find x and all four angles. Enter x, then angle A, then angle B, separated by semicolons. Angles C and A are equal, and angles D and B are equal.",
+    "G3-Q026": "Question sixteen. Square A B C D has a side length of eight centimeters. Find its perimeter and area. Enter the perimeter first, then the area, separated by a semicolon.",
+    "G3-Q027": "Question seventeen. Square M N P Q has diagonal M P equal to ten centimeters. Find diagonal N Q. Enter one number in centimeters.",
+    "G3-Q028": "Question eighteen. In square A B C D, diagonals A C and B D intersect at O. A C is twelve centimeters. Find A O, B O, and B D. Enter A O, then B O, then B D, separated by semicolons.",
+    "G3-Q029": "Question nineteen. Rhombus A B C D has a side length of seven centimeters. Find its perimeter. Enter one number in centimeters.",
+    "G3-Q030": "Question twenty. Rhombus A B C D has diagonals A C equal to sixteen centimeters and B D equal to twelve centimeters. Find its area. Enter one number in square centimeters.",
+    "G3-Q031": "Question twenty-one. In rhombus M N P Q, the diagonals intersect at O. M O is five centimeters and N O is twelve centimeters. Find side M N. Enter one number in centimeters.",
+    "G3-Q032": "Question twenty-two. Rectangle A B C D has a length of twelve centimeters and a width of five centimeters. Find its perimeter and area. Enter the perimeter first, then the area, separated by a semicolon.",
+    "G3-Q033": "Question twenty-three. Rectangle M N P Q has M N equal to fifteen centimeters and N P equal to eight centimeters. Find diagonal M P. Enter one number in centimeters.",
+    "G3-Q034": "Question twenty-four. In rectangle A B C D, diagonals A C and B D intersect at O. A C is fourteen centimeters. Find A O, B O, and B D. Enter A O, then B O, then B D, separated by semicolons.",
+    "G3-Q035": "Question twenty-five. Rectangle A B C D has a perimeter of thirty-six centimeters, and its length is four centimeters greater than its width. Find the length, width, and area. Enter the length, then the width, then the area, separated by semicolons.",
+    "G3-Q001": "Calculate the sum of the interior angles of a convex pentagon, in degrees.",
+    "G3-Q002": "How many diagonals does a convex hexagon have?",
+    "G3-Q003": "A rectangle has a length of eight centimeters and a width of six centimeters. What is the length of its diagonal, in centimeters?",
+    "G3-Q004": "In parallelogram A B C D, angle A is seventy degrees. What is the measure of angle B?",
+    "G3-Q005": "A rhombus has diagonals of six centimeters and eight centimeters. What is the length of its side, in centimeters?",
+    "G3-Q006": "The midline of a triangle has a length of seven centimeters. What is the length of the corresponding base?",
+    "G3-Q007": "An isosceles trapezoid has bases of four centimeters and ten centimeters. What is the length of its midline?",
+    "G3-Q008": "A square has a perimeter of thirty-six centimeters. What is its area, in square centimeters?",
+    "G3-Q009": "A regular polygon has an interior angle of one hundred and twenty degrees. How many sides does it have?",
+    "G3-Q010": "A rhombus has a perimeter of forty centimeters and one diagonal of twelve centimeters. What is the length of the other diagonal?"
+},
+            speak(id) {
+                if (!this.enabled || !this.map[id] || !('speechSynthesis' in window)) return;
+                try {
+                    speechSynthesis.cancel();
+                    const u = new SpeechSynthesisUtterance(this.map[id]);
+                    u.lang = 'en-US';
+                    u.rate = 0.65;
+                    u.pitch = 0.9;
+                    u.volume = 1;
+                    speechSynthesis.speak(u);
+                } catch(e) {}
+            }
+        };
+
+
+        const EnglishSpeech = {
+            initialized: false,
+            init() {
+                if (!('speechSynthesis' in window)) return;
+                const prepare = () => {
+                    try {
+                        speechSynthesis.getVoices();
+                        this.initialized = true;
+                    } catch(e) {}
+                };
+                prepare();
+                if ('onvoiceschanged' in speechSynthesis) {
+                    speechSynthesis.addEventListener('voiceschanged', prepare);
+                }
+            },
+            speak(text) {
+                if (!text || !('speechSynthesis' in window)) return;
+
+                const speakNow = () => {
+                    try {
+                        speechSynthesis.cancel();
+
+                        const voices = speechSynthesis.getVoices();
+                        const englishVoice =
+                            voices.find(v => /^en-US$/i.test(v.lang)) ||
+                            voices.find(v => /^en-GB$/i.test(v.lang)) ||
+                            voices.find(v => /^en/i.test(v.lang));
+
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        utterance.lang = englishVoice ? englishVoice.lang : 'en-US';
+                        if (englishVoice) utterance.voice = englishVoice;
+
+                        utterance.rate = 0.65;
+                        utterance.pitch = 0.9;
+                        utterance.volume = 1.0;
+
+                        speechSynthesis.speak(utterance);
+                    } catch(e) {
+                        console.warn('English speech error:', e);
+                    }
+                };
+
+                // Some browsers need a short delay after entering a new screen.
+                if (!this.initialized || speechSynthesis.getVoices().length === 0) {
+                    setTimeout(speakNow, 200);
+                } else {
+                    setTimeout(speakNow, 50);
+                }
+            }
+        };
+
+        // Initialize once when the game script loads.
+        EnglishSpeech.init();
+
+        function numberToAmericanEnglish(value) {
+            const n = Number(value);
+            if (!Number.isFinite(n)) return String(value);
+
+            const ones = ['zero','one','two','three','four','five','six','seven','eight','nine',
+                'ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen',
+                'eighteen','nineteen'];
+            const tens = ['', '', 'twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+
+            function under1000(x) {
+                if (x < 20) return ones[x];
+                if (x < 100) return tens[Math.floor(x / 10)] + (x % 10 ? '-' + ones[x % 10] : '');
+                return ones[Math.floor(x / 100)] + ' hundred' + (x % 100 ? ' ' + under1000(x % 100) : '');
+            }
+
+            if (Number.isInteger(n) && n >= 0 && n < 1000000) {
+                if (n < 1000) return under1000(n);
+                const th = Math.floor(n / 1000);
+                const rest = n % 1000;
+                return under1000(th) + ' thousand' + (rest ? ' ' + under1000(rest) : '');
+            }
+            return String(value);
+        }
+
+        function normalizeChoiceForEnglishSpeech(choice) {
+            let s = String(choice ?? '').trim();
+
+            // Bare numbers: 360 -> "three hundred sixty"
+            if (/^\d+$/.test(s)) {
+                return numberToAmericanEnglish(s);
+            }
+
+            // Numbers with common math units.
+            s = s.replace(/(\d+)\s*cm²\b/gi,
+                (_, n) => `${numberToAmericanEnglish(n)} square centimeters`);
+            s = s.replace(/(\d+)\s*cm2\b/gi,
+                (_, n) => `${numberToAmericanEnglish(n)} square centimeters`);
+            s = s.replace(/(\d+)\s*cm\b/gi,
+                (_, n) => `${numberToAmericanEnglish(n)} centimeters`);
+            s = s.replace(/(\d+)\s*degrees?\b/gi,
+                (_, n) => `${numberToAmericanEnglish(n)} degrees`);
+
+            return s;
+        }
+
+        // English narration controller: prevents an old question from continuing
+        // after the player selects an answer or the next question is loaded.
+        let englishSpeechGeneration = 0;
+
+        function stopEnglishNarration() {
+            englishSpeechGeneration++;
+            if ('speechSynthesis' in window) {
+                try { speechSynthesis.cancel(); } catch (e) {}
+            }
+        }
+
+        function speakEnglishQuestionAndChoices(questionId, questionText, choices) {
+            if (!('speechSynthesis' in window)) return;
+
+            const speechGeneration = ++englishSpeechGeneration;
+            try { speechSynthesis.cancel(); } catch (e) {}
+
+            const parts = [];
+
+            const explicitQuestion =
+                (typeof EnglishQuestionVoice !== 'undefined' &&
+                 EnglishQuestionVoice.map &&
+                 EnglishQuestionVoice.map[questionId])
+                    ? EnglishQuestionVoice.map[questionId]
+                    : questionText;
+
+            if (explicitQuestion) parts.push(explicitQuestion);
+
+            // `choices` is already in the exact visible order A/B/C/D.
+            if (Array.isArray(choices)) {
+                choices.forEach((choice, i) => {
+                    let spoken = '';
+
+                    if (typeof choice === 'object' && choice !== null) {
+                        spoken = choice.english ?? choice.en ?? '';
+                        if (!spoken) spoken = choice.text ?? choice.label ?? choice.answer ?? choice.q ?? '';
+                    } else {
+                        spoken = choice;
+                    }
+
+                    if (typeof normalizeChoiceForEnglishSpeech === 'function') {
+                        spoken = normalizeChoiceForEnglishSpeech(spoken);
+                    }
+
+                    if (spoken) {
+                        parts.push(`Option ${String.fromCharCode(65 + i)}. ${spoken}`);
+                    }
+                });
+            }
+
+            if (!parts.length) return;
+
+            const speakQueue = () => {
+                try {
+                    if (speechGeneration !== englishSpeechGeneration) return;
+                    speechSynthesis.cancel();
+
+                    const voices = speechSynthesis.getVoices();
+                    const voice =
+                        voices.find(v => /^en-US$/i.test(v.lang)) ||
+                        voices.find(v => /^en-GB$/i.test(v.lang)) ||
+                        voices.find(v => /^en/i.test(v.lang));
+
+                    let index = 0;
+
+                    const next = () => {
+                        if (speechGeneration !== englishSpeechGeneration) return;
+                        if (index >= parts.length) return;
+
+                        const u = new SpeechSynthesisUtterance(parts[index++]);
+                        u.lang = voice ? voice.lang : 'en-US';
+                        if (voice) u.voice = voice;
+                        u.rate = 0.65;
+                        u.pitch = 0.9;
+                        u.volume = 1;
+
+                        u.onend = () => {
+                            if (speechGeneration === englishSpeechGeneration) setTimeout(next, 120);
+                        };
+                        u.onerror = () => {
+                            if (speechGeneration === englishSpeechGeneration) setTimeout(next, 120);
+                        };
+
+                        speechSynthesis.speak(u);
+                    };
+
+                    next();
+                } catch (e) {
+                    console.warn('English speech error:', e);
+                }
+            };
+
+            setTimeout(speakQueue, 120);
+        }
+
+
+        // 5. CINEMATIC SYSTEM
+        function playAwakeningCinematic(power, rank, stars) {
+            return new Promise((resolve) => {
+                AudioSys.init();
+                AudioSys.victoryCinematic();
+                switchScreen('screen-cinematic');
+                AudioSys.cinematicGlow();
+
+                const cineTitle = document.getElementById('cine-title');
+                const cineName = document.getElementById('cine-name');
+                const cinePowerCont = document.getElementById('cine-power-container');
+                const cinePowerNum = document.getElementById('cine-power-num');
+                const cineRankCont = document.getElementById('cine-rank-container');
+                const cineStars = document.getElementById('cine-stars');
+                const cineRankTitle = document.getElementById('cine-rank-title');
+                const cineGateMsg = document.getElementById('cine-gate-msg');
+                const ringContainer = document.getElementById('power-ring-container');
+
+                cineName.innerText = playerName.toUpperCase();
+                cineStars.innerText = stars;
+                cineRankTitle.innerText = rank;
+
+                setTimeout(() => cineTitle.style.opacity = 1, 300);
+                setTimeout(() => cineName.style.opacity = 1, 1000);
+
+                setTimeout(() => {
+                    cinePowerCont.style.opacity = 1;
+                    let currentNum = 0;
+                    const duration = 2000;
+                    const stepTime = 30;
+                    const steps = duration / stepTime;
+                    const increment = power / steps;
+
+                    const numTimer = setInterval(() => {
+                        currentNum += increment;
+                        if (currentNum >= power) {
+                            currentNum = power;
+                            clearInterval(numTimer);
+                        }
+                        cinePowerNum.innerText = currentNum.toFixed(0);
+                    }, stepTime);
+                }, 1800);
+
+                setTimeout(() => {
+                    cineRankCont.style.opacity = 1;
+                    cineRankCont.className = "transition-all duration-1000 scale-100 my-4";
+                    AudioSys.start();
+                    
+                    const ring = document.createElement('div');
+                    ring.className = 'power-ring';
+                    ring.style.animation = 'ring-expand 1.5s ease-out forwards';
+                    ringContainer.appendChild(ring);
+                }, 4200);
+
+                setTimeout(() => {
+                    cineGateMsg.classList.remove('hidden');
+                    cineGateMsg.style.opacity = 1;
+                    AudioSys.warpSpeed();
+                    SpaceRenderer.triggerWarpSpeed();
+                }, 5800);
+
+                setTimeout(() => {
+                    cineTitle.style.opacity = 0;
+                    cineName.style.opacity = 0;
+                    cinePowerCont.style.opacity = 0;
+                    cineRankCont.style.opacity = 0;
+                    cineGateMsg.style.opacity = 0;
+                    setTimeout(resolve, 800);
+                }, 8500);
+            });
+        }
+
+        // 6. 3D SPACE & CANVAS ENGINE
+        const SpaceRenderer = {
+            canvas: null, ctx: null, stars: [], planets: [], astronaut: null,
+            camera: { x: 0, y: 0, z: 0, targetX: 0, targetY: 0 },
+            corePulse: 0, coreColor: '#00f3ff', warpFactor: 1,
+
+            init: function() {
+                this.canvas = document.getElementById('spaceCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+
+                for (let i = 0; i < 400; i++) {
+                    this.stars.push({
+                        x: (Math.random() - 0.5) * 3000,
+                        y: (Math.random() - 0.5) * 3000,
+                        z: Math.random() * 2000 + 100,
+                        size: Math.random() * 2 + 0.5,
+                        color: Math.random() > 0.8 ? '#bc13fe' : (Math.random() > 0.5 ? '#00f3ff' : '#ffffff')
+                    });
+                }
+
+                this.planets = [
+                    { x: -500, y: -200, z: 1200, radius: 120, color: '#bc13fe', ring: true, glow: 'rgba(188,19,254,0.4)', rot: 0 },
+                    { x: 600, y: 300, z: 1500, radius: 180, color: '#0055ff', ring: false, glow: 'rgba(0,85,255,0.4)', rot: 0 }
+                ];
+
+                this.astronaut = {
+                    x: 0, y: 0, z: 400,
+                    targetX: 0, targetY: 0,
+                    vx: 0, vy: 0,
+                    angle: 0, state: 'FLOAT',
+                    timer: 0,
+                    setState: function(st) { this.state = st; this.timer = 60; }
+                };
+
+                window.addEventListener('keydown', (e) => {
+                    const speed = 20;
+                    if (e.key === 'w' || e.key === 'ArrowUp') this.camera.targetY += speed;
+                    if (e.key === 's' || e.key === 'ArrowDown') this.camera.targetY -= speed;
+                    if (e.key === 'a' || e.key === 'ArrowLeft') this.camera.targetX += speed;
+                    if (e.key === 'd' || e.key === 'ArrowRight') this.camera.targetX -= speed;
+                });
+
+                window.addEventListener('pointerdown', (e) => {
+                    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+                    const cx = window.innerWidth / 2;
+                    const cy = window.innerHeight / 2;
+                    this.astronaut.targetX = (e.clientX - cx) * 1.5;
+                    this.astronaut.targetY = (e.clientY - cy) * 1.5;
+                });
+
+                this.loop();
+            },
+
+            resize: function() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            },
+
+            triggerMathCorePulse: function(isSuccess) {
+                this.corePulse = 1.0;
+                this.coreColor = isSuccess ? '#00ff64' : '#ff3232';
+            },
+
+            triggerWarpSpeed: function() {
+                let count = 0;
+                const timer = setInterval(() => {
+                    this.warpFactor += 0.5;
+                    count++;
+                    if(count > 60) {
+                        clearInterval(timer);
+                        const resetTimer = setInterval(() => {
+                            this.warpFactor -= 0.5;
+                            if(this.warpFactor <= 1) { this.warpFactor = 1; clearInterval(resetTimer); }
+                        }, 20);
+                    }
+                }, 20);
+            },
+
+            loop: function() {
+                const ctx = this.ctx;
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+                const cx = w / 2;
+                const cy = h / 2;
+
+                this.camera.x += (this.camera.targetX - this.camera.x) * 0.05;
+                this.camera.y += (this.camera.targetY - this.camera.y) * 0.05;
+
+                ctx.fillStyle = '#030510';
+                ctx.fillRect(0, 0, w, h);
+
+                // Stars
+                this.stars.forEach(star => {
+                    star.z -= 2 * this.warpFactor;
+                    if (star.z <= 1) star.z = 2000;
+
+                    const k = 400 / star.z;
+                    const px = (star.x + this.camera.x) * k + cx;
+                    const py = (star.y + this.camera.y) * k + cy;
+
+                    if (px >= 0 && px <= w && py >= 0 && py <= h) {
+                        const size = Math.max(0.1, star.size * k * (this.warpFactor > 1 ? 2 : 1));
+                        ctx.fillStyle = star.color;
+                        if(this.warpFactor > 1.5) {
+                            ctx.strokeStyle = star.color;
+                            ctx.lineWidth = size;
+                            ctx.beginPath();
+                            ctx.moveTo(px, py);
+                            ctx.lineTo(px + (px-cx)*0.1*this.warpFactor, py + (py-cy)*0.1*this.warpFactor);
+                            ctx.stroke();
+                        } else {
+                            ctx.beginPath();
+                            ctx.arc(px, py, size, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                });
+
+                // Planets
+                this.planets.forEach(p => {
+                    p.rot += 0.002;
+                    const k = 400 / p.z;
+                    const px = (p.x + this.camera.x) * k + cx;
+                    const py = (p.y + this.camera.y) * k + cy;
+                    const r = p.radius * k;
+
+                    if (px + r > 0 && px - r < w && py + r > 0 && py - r < h) {
+                        const grad = ctx.createRadialGradient(px - r*0.3, py - r*0.3, r*0.1, px, py, r);
+                        grad.addColorStop(0, '#ffffff');
+                        grad.addColorStop(0.5, p.color);
+                        grad.addColorStop(1, '#000000');
+
+                        ctx.fillStyle = grad;
+                        ctx.beginPath();
+                        ctx.arc(px, py, r, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        if (p.ring) {
+                            ctx.save();
+                            ctx.translate(px, py);
+                            ctx.rotate(0.4);
+                            ctx.scale(1, 0.3);
+                            ctx.strokeStyle = p.glow;
+                            ctx.lineWidth = r * 0.4;
+                            ctx.beginPath();
+                            ctx.arc(0, 0, r * 1.6, 0, Math.PI * 2);
+                            ctx.stroke();
+                            ctx.restore();
+                        }
+                    }
+                });
+
+                // Core Pulse FX
+                if (this.corePulse > 0.01) {
+                    this.corePulse *= 0.92;
+                    ctx.fillStyle = this.coreColor;
+                    ctx.globalAlpha = this.corePulse * 0.15;
+                    ctx.fillRect(0, 0, w, h);
+                    ctx.globalAlpha = 1.0;
+                }
+
+                // Astronaut Character
+                const a = this.astronaut;
+                a.x += (a.targetX - a.x) * 0.05;
+                a.y += (a.targetY - a.y) * 0.05;
+                a.timer = Math.max(0, a.timer - 1);
+                if (a.timer === 0) a.state = 'FLOAT';
+
+                const ak = 400 / a.z;
+                const apx = (a.x + this.camera.x) * ak + cx;
+                const apy = (a.y + this.camera.y) * ak + cy;
+
+                ctx.save();
+                ctx.translate(apx, apy);
+                const floatOffset = Math.sin(Date.now() * 0.003) * 8;
+                ctx.translate(0, floatOffset);
+
+                // Jetpack Glow
+                ctx.fillStyle = 'rgba(0, 243, 255, 0.6)';
+                ctx.beginPath();
+                ctx.arc(0, 15, 12 + Math.random()*5, 0, Math.PI*2);
+                ctx.fill();
+
+                // Astronaut Body
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 18, 22, 0, 0, Math.PI*2);
+                ctx.fill();
+
+                // Visor
+                ctx.fillStyle = a.state === 'CORRECT' ? '#00ff64' : (a.state === 'WRONG' ? '#ff3232' : '#00f3ff');
+                ctx.beginPath();
+                ctx.ellipse(0, -6, 11, 8, 0, 0, Math.PI*2);
+                ctx.fill();
+
+                ctx.restore();
+
+                requestAnimationFrame(() => this.loop());
+            }
+        };
+
+        // 7. UI SCREEN FLOW & MODAL CONTROLS
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            const target = document.getElementById(screenId);
+            if (target) target.classList.add('active');
+        }
+
+        function startGame() {
+            AudioSys.init();
+            const nameInput = document.getElementById('player-name-input').value.trim();
+            const schoolInput = document.getElementById('school-name-input').value.trim();
+            
+            if (!nameInput) {
+                document.getElementById('name-error').classList.remove('hidden');
+                AudioSys.wrong();
+                return;
+            }
+            
+            playerName = nameInput;
+            schoolName = schoolInput;
+            localStorage.setItem('mathWar8_playerName', playerName);
+            localStorage.setItem('mathWar8_schoolName', schoolName);
+
+            document.getElementById('hero-name-display').innerText = playerName;
+            document.getElementById('welcome-msg').innerText = `CHÀO MỪNG, ${playerName.toUpperCase()}`;
+            
+            AudioSys.start();
+            switchScreen('screen-briefing');
+        }
+
+        function startMissionIntro() {
+            switchScreen('screen-game');
+            document.getElementById('hud').classList.add('active');
+            document.getElementById('hud').classList.remove('hidden');
+            game.initSession();
+        }
+
+        function transitionToGame2() {
+            switchScreen('screen-transition-game2');
+            playGame2Cinematic();
+        }
+
+        function startGame2() {
+            AudioSys.init();
+            AudioSys.playTone(520, 'triangle', 0.18, 0.08);
+            switchScreen('screen-game2');
+            document.getElementById('hud').classList.add('active');
+            document.getElementById('hud').classList.remove('hidden');
+            game2.init();
+        }
+
+        function transitionToGame3() {
+            switchScreen('screen-transition-game3');
+            playGame3Cinematic();
+        }
+
+        function startGame3() {
+            AudioSys.init();
+            AudioSys.playTone(880, 'triangle', 0.20, 0.09);
+            switchScreen('screen-game3');
+            document.getElementById('hud').classList.add('active');
+            document.getElementById('hud').classList.remove('hidden');
+            game3.init();
+        }
+
+        function showSummaryModal() {
+            document.getElementById('summary-player-name').innerText = playerName.toUpperCase();
+
+            // Fill Game 1 data
+            document.getElementById('sum-g1-score').innerText = globalGameState.game1.score;
+            document.getElementById('sum-g1-power').innerText = `${globalGameState.game1.powerPercent.toFixed(1)}%`;
+            document.getElementById('sum-g1-rank').innerText = globalGameState.game1.rank || "COMPLETED";
+
+            // Fill Game 2 data
+            document.getElementById('sum-g2-score').innerText = globalGameState.game2.score;
+            document.getElementById('sum-g2-power').innerText = `${globalGameState.game2.powerPercent.toFixed(1)}%`;
+            document.getElementById('sum-g2-rank').innerText = globalGameState.game2.rank || "COMPLETED";
+
+            // Fill Game 3 data
+            document.getElementById('sum-g3-score').innerText = globalGameState.game3.score;
+            document.getElementById('sum-g3-power').innerText = `${globalGameState.game3.powerPercent.toFixed(1)}%`;
+            document.getElementById('sum-g3-rank').innerText = globalGameState.game3.rank || "COMPLETED";
+
+            // Calculate overall average power
+            const avgPower = (globalGameState.game1.powerPercent + globalGameState.game2.powerPercent + globalGameState.game3.powerPercent) / 3;
+            let evalMsg = "";
+            if (avgPower >= 85) {
+                evalMsg = `Xuất sắc! Nhà thám hiểm ${playerName} đã làm chủ hoàn toàn tri thức Hình học và Số học. Cổng Tri Thức Void đã được mở khóa toàn diện!`;
+            } else if (avgPower >= 70) {
+                evalMsg = `Tốt lắm! Bạn đã hoàn thành xuất sắc các thử thách toán học và bảo vệ thành công Math Core.`;
+            } else {
+                evalMsg = `Chúc mừng bạn đã hoàn thành cả 3 Game! Hãy tiếp tục rèn luyện để nâng cao chỉ số Math Power tối đa.`;
+            }
+            document.getElementById('summary-overall-eval').innerText = evalMsg;
+
+            document.getElementById('modal-summary').classList.remove('hidden');
+        }
+
+        function toggleSettings() {
+            document.getElementById('modal-settings').classList.toggle('hidden');
+        }
+
+        function closeSettings() {
+            document.getElementById('modal-settings').classList.add('hidden');
+        }
+
+        function toggleAudio() {
+            AudioSys.enabled = !AudioSys.enabled;
+            document.getElementById('btn-audio').innerText = AudioSys.enabled ? 'ON' : 'OFF';
+        }
+
+        function toggleParticles() {
+            SpaceRenderer.canvas.style.display = SpaceRenderer.canvas.style.display === 'none' ? 'block' : 'none';
+            document.getElementById('btn-particles').innerText = SpaceRenderer.canvas.style.display === 'none' ? 'OFF' : 'ON';
+        }
+
+        // Initialize Engine & Save Data on Load
+        window.addEventListener('load', () => {
+            initSaveSystem();
+            SpaceRenderer.init();
+        });
+    </script>
+</body>
+</html>
